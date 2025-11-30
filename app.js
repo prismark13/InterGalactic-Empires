@@ -1,7 +1,7 @@
 // app.js - Final Master Version (V11.0)
 
 const els = {
-    // Header Stats
+    // Stats & Header
     units: document.getElementById('ui-units'), 
     fuelIon: document.getElementById('ui-fuel-ion'), 
     fuelWarp: document.getElementById('ui-fuel-warp'), 
@@ -88,7 +88,7 @@ function stringHash(str) {
     return Math.abs(Math.sin(hash) * 10000) % 1; 
 }
 
-// --- MAIN RENDER LOOP ---
+// --- 4. MAIN RENDER LOOP ---
 function render(data) {
     if(!data) return;
     currentData = data;
@@ -118,8 +118,8 @@ function render(data) {
     // 4. Encounter Modal
     if (data.encounter) {
         els.encModal.classList.remove('hidden');
-        els.encTitle.innerText = data.encounter.type.toUpperCase();
-        els.encText.innerText = data.encounter.text;
+        if(els.encTitle) els.encTitle.innerText = data.encounter.type.toUpperCase();
+        if(els.encText) els.encText.innerText = data.encounter.text;
         
         let btns = '';
         if (data.encounter.hostile) {
@@ -129,7 +129,7 @@ function render(data) {
         } else {
             btns = `<button onclick="sendCmd('Trade')" class="action-btn">TRADE</button><button onclick="sendCmd('Ignore')" class="action-btn">IGNORE</button>`;
         }
-        els.encActions.innerHTML = btns;
+        if(els.encActions) els.encActions.innerHTML = btns;
     } else {
         if(els.encModal) els.encModal.classList.add('hidden');
     }
@@ -165,60 +165,31 @@ function populateList(container, items, color, isCargo=false) {
 
 // --- 6. CENTER VIEW MANAGER ---
 function updateCenterView() {
-    els.mapDisplay.classList.add('hidden'); 
-    els.marketDisplay.classList.add('hidden'); 
-    els.shipyardDisplay.classList.add('hidden'); 
-    els.loungeDisplay.classList.add('hidden');
+    els.mapDisplay.classList.add('hidden'); els.marketDisplay.classList.add('hidden'); 
+    els.shipyardDisplay.classList.add('hidden'); els.loungeDisplay.classList.add('hidden');
 
     if (currentData.meta.landed) {
-        els.viewToggles.innerHTML = `
-            <button onclick="showMarket('goods')" class="view-btn" id="btn-mkt">MARKET</button>
-            <button onclick="showMarket('ships')" class="view-btn" id="btn-shp">SHIPYARD</button>
-            <button onclick="showMarket('lounge')" class="view-btn" id="btn-lng">LOUNGE</button>
-            <button onclick="sendCmd('Takeoff')" class="view-btn warning">TAKEOFF</button>
-        `;
+        els.viewToggles.innerHTML = `<button onclick="showMarket('goods')" class="view-btn">MARKET</button><button onclick="showMarket('ships')" class="view-btn">SHIPYARD</button><button onclick="showMarket('lounge')" class="view-btn">LOUNGE</button><button onclick="sendCmd('Takeoff')" class="view-btn warning">TAKEOFF</button>`;
         
-        if (els.shipyardDisplay.classList.contains('active-view')) showMarket('ships');
-        else if (els.loungeDisplay.classList.contains('active-view')) showMarket('lounge');
-        else showMarket('goods'); 
-
+        // Check Logic to Persist View
+        if(els.shipyardDisplay.classList.contains('active-view')) showMarket('ships');
+        else if(els.loungeDisplay.classList.contains('active-view')) showMarket('lounge');
+        else showMarket('goods');
     } else {
         els.mapDisplay.classList.remove('hidden');
-        els.viewToggles.innerHTML = `
-            <button onclick="setMapMode('galaxy')" class="view-btn ${currentData.map.view_mode==='galaxy'?'active':''}">GALAXY</button>
-            <button onclick="setMapMode('sector')" class="view-btn ${currentData.map.view_mode==='sector'?'active':''}">SECTOR</button>
-        `;
+        els.viewToggles.innerHTML = `<button onclick="setMapMode('galaxy')" class="view-btn">GALAXY</button><button onclick="setMapMode('sector')" class="view-btn">SECTOR</button>`;
         requestAnimationFrame(renderMap);
     }
 }
 
 // View Switcher
 window.showMarket = (type) => {
-    els.marketDisplay.classList.add('hidden'); els.marketDisplay.classList.remove('active-view');
-    els.shipyardDisplay.classList.add('hidden'); els.shipyardDisplay.classList.remove('active-view');
-    els.loungeDisplay.classList.add('hidden'); els.loungeDisplay.classList.remove('active-view');
-    
-    if(document.getElementById('btn-mkt')) {
-        document.getElementById('btn-mkt').classList.toggle('active', type==='goods');
-        document.getElementById('btn-shp').classList.toggle('active', type==='ships');
-        document.getElementById('btn-lng').classList.toggle('active', type==='lounge');
-    }
+    els.marketDisplay.classList.add('hidden'); els.shipyardDisplay.classList.add('hidden'); els.loungeDisplay.classList.add('hidden');
+    els.marketDisplay.classList.remove('active-view'); els.shipyardDisplay.classList.remove('active-view'); els.loungeDisplay.classList.remove('active-view');
 
-    if (type === 'goods') { 
-        els.marketDisplay.classList.remove('hidden'); 
-        els.marketDisplay.classList.add('active-view'); 
-        renderCommodities(marketMode); 
-    } 
-    else if (type === 'ships') { 
-        els.shipyardDisplay.classList.remove('hidden'); 
-        els.shipyardDisplay.classList.add('active-view'); 
-        renderShipyard(); 
-    } 
-    else { 
-        els.loungeDisplay.classList.remove('hidden'); 
-        els.loungeDisplay.classList.add('active-view'); 
-        renderLounge(); 
-    }
+    if(type==='goods'){ els.marketDisplay.classList.remove('hidden'); els.marketDisplay.classList.add('active-view'); renderCommodities(marketMode); }
+    else if(type==='ships'){ els.shipyardDisplay.classList.remove('hidden'); els.shipyardDisplay.classList.add('active-view'); renderShipyard(); }
+    else { els.loungeDisplay.classList.remove('hidden'); els.loungeDisplay.classList.add('active-view'); renderLounge(); }
 }
 window.closeMarket = () => sendCmd('Takeoff');
 
@@ -290,7 +261,7 @@ function renderLounge() {
                 <div style="font-size:0.8em;color:#888">${r.desc}</div>
                 <div style="display:flex;justify-content:space-between;margin-top:5px">
                     <span style="color:#eab308">${r.cost} U</span>
-                    <button onclick="sendCmd('Recruit ${r.name}')" class="buy-btn ${can?'':'disabled'}">HIRE</button>
+                    <button onclick="sendCmd('Recruit ${r.name}')" class="${can?'':'disabled'}">HIRE</button>
                 </div>
             </div>`;
     });
@@ -317,19 +288,16 @@ function renderMap() {
         svg.style.position = "absolute"; display.appendChild(svg);
         
         (currentData.map.neighbors||[]).forEach((star,i)=>{
-            const seed = stringHash(star);
-            const dist = 120 + (seed * 80); 
-            const ang = (i/3) * 6.28 + seed;
-            const x = cx + dist * Math.cos(ang); 
-            const y = cy + dist * Math.sin(ang);
-            
+            const dist=150; const ang=(i/3)*6.28;
+            const sx = cx + dist * Math.cos(ang);
+            const sy = cy + dist * Math.sin(ang);
             let line = document.createElementNS("http://www.w3.org/2000/svg","line"); 
-            line.setAttribute("x1",cx); line.setAttribute("y1",cy); line.setAttribute("x2",x); line.setAttribute("y2",y); 
+            line.setAttribute("x1",cx); line.setAttribute("y1",cy); line.setAttribute("x2",sx); line.setAttribute("y2",sy); 
             line.setAttribute("stroke","#45a29e"); line.setAttribute("opacity","0.3"); svg.appendChild(line);
             
             let n = document.createElement('div'); n.className="map-node star-node"; 
             n.innerHTML=`<div class="node-label">${star}</div>`; 
-            n.style.left=`${x}px`; n.style.top=`${y}px`; 
+            n.style.left=`${sx}px`; n.style.top=`${sy}px`; 
             n.onclick=()=>sendCmd(`Warp to ${star}`); display.appendChild(n);
         });
     } else {
@@ -337,14 +305,13 @@ function renderMap() {
         const bodies = currentData.map.sector_bodies || [];
         if (bodies.length === 0) { display.innerHTML = '<div class="empty" style="padding-top:100px">NO SCAN DATA</div>'; return; }
 
-        // Star
-        const star = bodies.find(b=>b.is_star) || {type:"G-Type", name:"Unknown Star"};
+        // Star Logic
         let sun = document.createElement('div'); 
-        sun.className = `central-sun ${getStarVisual(star.type)}`; 
+        sun.className = `central-sun ${getStarVisual(bodies.find(b=>b.is_star)?.type || "G-Type")}`; 
         sun.style.left=`${cx}px`; sun.style.top=`${cy}px`; 
         display.appendChild(sun);
 
-        // Planets
+        // Planets Logic
         const planets = bodies.filter(b => !b.is_star);
         const maxRad = Math.min(cx, cy) - 60; 
         const step = maxRad / (planets.length + 1);
@@ -361,7 +328,7 @@ function renderMap() {
             const px = cx + r * Math.cos(a); 
             const py = cy + r * Math.sin(a);
             
-            let p = document.createElement('div'); p.className = "orbital-planet";
+            let p = document.createElement('div'); p.className="orbital-planet";
             let visual = getVisualClass(b.type);
             p.innerHTML = `<div class="planet-icon ${visual}"></div><div class="orbital-label">${b.name}</div>`;
             p.style.left = `${px}px`; p.style.top = `${py}px`; 
@@ -394,9 +361,9 @@ function renderRightPanel() {
             grid.appendChild(s);
         });
         
-        add(ship.crew, 'crew', 'CRW'); 
-        add(ship.weapons, 'weapon', 'WPN'); 
-        add(ship.systems, 'system', 'SYS');
+        add(ship.crew||[], 'crew', 'CRW'); 
+        add(ship.weapons||[], 'weapon', 'WPN'); 
+        add(ship.systems||[], 'system', 'SYS');
         
         let flatCargo=[]; (ship.cargo||[]).forEach(c=>{ 
             for(let i=0; i<Math.ceil((c.qty * (c.weight||1)) / 20); i++) flatCargo.push(c); 
@@ -418,7 +385,7 @@ function renderRightPanel() {
     }
 }
 
-// --- 10. SYSTEM UTILS ---
+// --- 10. MODALS & CONTROLS ---
 window.openDetailModal = (t, d) => {
     els.mTitle.innerText = d.name;
     
@@ -451,17 +418,36 @@ window.closeModal = () => els.modal.classList.add('hidden');
 window.closeMarket = () => sendCmd('Takeoff');
 window.restartGame = () => sendCmd("RESTART_GAME");
 window.setMapMode = (m) => sendCmd(m==='galaxy'?'Galaxy Map':'Scan Sector');
-window.switchRightTab = (t) => { activeRightTab=t; renderRightPanel(); }
+window.switchRightTab = (t) => { activeRightTab=t; document.querySelectorAll('.p-tab').forEach(b=>b.classList.remove('active')); document.getElementById('tab-'+t).classList.add('active'); renderRightPanel(); }
 
+// --- 11. COMMUNICATION ---
 window.sendCmd = async(txt) => { 
     if(!txt) txt=els.input.value; els.input.value=''; 
     try { 
         const res = await fetch('http://localhost:3000/command', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({command: txt}) }); 
         render(await res.json()); 
-    } catch(e){} 
+    } catch(e) {
+        console.error("Transmission Failure:", e);
+        // Simple visual feedback on failure
+        if(els.btn) { els.btn.style.backgroundColor = "#ef4444"; setTimeout(() => els.btn.style.backgroundColor = "#66fcf1", 1000); }
+    }
 }
 
 els.btn.onclick = () => sendCmd(); 
 els.input.onkeypress = (e) => { if(e.key === 'Enter') sendCmd(); };
-async function init() { try { render(await (await fetch('game_state.json')).json()); } catch(e){} switchTab('ship'); }
+async function init() { 
+    try { 
+        const res = await fetch('game_state.json');
+        const data = await res.json();
+        // Check 1: If data is loaded but location is missing, force reset.
+        if (data && data.meta && (!data.meta.location || data.meta.location === "Unknown")) {
+             sendCmd("RESTART_GAME"); // Self-heal
+        } else {
+            render(data); 
+        }
+    } catch(e) {
+        // Check 2: If file is missing/unreadable, start fresh.
+        sendCmd("RESTART_GAME");
+    } 
+}
 init();

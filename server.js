@@ -162,6 +162,30 @@ app.post('/command', async (req, res) => { // <--- FIXED HERE
                 if(name.includes("Hyper-Crystals")) core.state.ship.stats.fuel_warp+=qty;
             }
         }
+    // AI FALLBACK
+    if (!handled) {
+        try {
+            // Combine LORE + STATE + COMMAND
+            const prompt = `
+            ${LORE}
+            
+            CURRENT GAME STATE: ${JSON.stringify(core.state)}
+            
+            PLAYER COMMAND: "${cmd}"
+            
+            RESPONSE (Keep it brief, under 2 sentences, flavorful):
+            `;
+            
+            const result = await model.generateContent(prompt);
+            const text = result.response.text().replace(/```json/g, '').replace(/```/g, '');
+            
+            // You can push this text to the log
+            core.state.log.push({ type: "gm", text: text });
+            
+        } catch (e) {
+            console.error("AI Error", e);
+        }
+    }
     }
 
     if (cmd.startsWith("Sell ")) {
