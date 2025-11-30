@@ -1,4 +1,4 @@
-// server.js - V11.1 Error Handler Edition
+// server.js - V11.3 Async Fix
 require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
@@ -9,14 +9,10 @@ const DATA = require('./data/constants');
 
 const app = express();
 const PORT = 3000;
-
-// --- CONFIGURATION CHECKS ---
 const API_KEY = process.env.GEMINI_API_KEY;
 const MODEL_NAME = "gemini-2.0-flash"; 
-if (!API_KEY) { 
-    console.error("CRITICAL: Missing .env API Key"); 
-    process.exit(1); 
-}
+
+if (!API_KEY) { console.error("CRITICAL: Missing .env API Key"); process.exit(1); }
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const genAI = new GoogleGenerativeAI(API_KEY);
@@ -26,16 +22,10 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static('.')); 
 
-// --- ERROR WRAPPER ---
-// Wraps async routes to catch errors automatically
-const asyncHandler = (fn) => (req, res, next) => {
-    Promise.resolve(fn(req, res, next)).catch(next);
-};
-
 let gameState;
 let core;
 
-// --- ROBUST STATE LOADER ---
+// --- ROBUST LOADER ---
 function createFreshState() {
     return { 
         meta: { location: "Veridia Prime", date: "2400.01.01", landed: false, orbiting: "Veridia Prime" },
@@ -55,105 +45,68 @@ function createFreshState() {
         known_systems: { "Veridia Prime": DATA.STARTER_PLANETS }, 
         local_market: [], local_shipyard: [], local_lounge: { recruits: [], rumors: [] }, 
         encounter: null,
-        log: [{ type: "system", text: "System Initialized." }]
+        log: [{ type: "system", text: "System Online." }]
     };
 }
 
 function loadState() {
     try {
         if (!fs.existsSync('game_state.json')) return createFreshState();
-        
-        const raw = fs.readFileSync('game_state.json', 'utf8');
-        const s = JSON.parse(raw);
-        
-        // DEEP INTEGRITY CHECK
-        if (!s.meta || !s.ship || !s.map) throw new Error("Missing Core Data Structure");
-        if (!s.meta.location || s.meta.location === "Unknown") throw new Error("Invalid Location Data");
-
+        let s = JSON.parse(fs.readFileSync('game_state.json', 'utf8'));
+        // Integrity Check
+        if (!s.meta || !s.ship || !s.map) throw new Error("Corrupt");
+        if (!s.local_lounge || Array.isArray(s.local_lounge)) s.local_lounge = { recruits: [], rumors: [] };
         return s;
     } catch (e) {
-        console.error("SAVE CORRUPT:", e.message);
-        // Backup bad save if it exists
-        if (fs.existsSync('game_state.json')) {
-            fs.copyFileSync('game_state.json', `game_state.corrupt.${Date.now()}.bak`);
-        }
+        console.log("State Corrupt. Re-initializing...");
         return createFreshState();
     }
 }
 
-// Initialize
+// Init
 gameState = loadState();
 core = new GameCore(gameState);
 core.syncShipStats();
-
-// Safety: Ensure current location exists in memory
-if (!gameState.known_systems[gameState.meta.location]) {
+// Force Map Data
+if(!gameState.known_systems[gameState.meta.location]) {
     gameState.known_systems[gameState.meta.location] = core.generateSectorBodies(gameState.meta.location);
 }
 gameState.map.sector_bodies = gameState.known_systems[gameState.meta.location];
 
-function save() { 
-    // Atomic write could be better, but sync is safe for this scale
-    fs.writeFileSync('game_state.json', JSON.stringify(core.state, null, 2)); 
-}
+function save() { fs.writeFileSync('game_state.json', JSON.stringify(core.state, null, 2)); }
 
-// --- ROUTER ---
-app.post('/command', asyncHandler(async (req, res) => {
+// --- API ROUTE (FIXED ASYNC) ---
+app.post('/command', async (req, res) => { // <--- FIXED HERE
     const cmd = req.body.command;
-    if (!cmd) throw new Error("No command provided");
 
-    // 1. HARD RESET
     if (cmd === "RESTART_GAME") {
         if(fs.existsSync('game_state.json')) fs.unlinkSync('game_state.json');
-        gameState = createFreshState();
+        gameState = createFreshState(); 
         core = new GameCore(gameState);
-        // Re-seed starter
-        gameState.known_systems["Veridia Prime"] = DATA.STARTER_PLANETS;
-        gameState.map.sector_bodies = DATA.STARTER_PLANETS;
-        core.syncShipStats();
-        save();
+        core.syncShipStats(); save(); 
         return res.json(core.state);
     }
 
-    // 2. COMMAND LOGIC
-    let handled = false;
-
+    // SCANNING
     if (cmd === "Scan Sector") {
         core.state.map.view_mode = "sector";
         const loc = core.state.meta.location;
-        if (!core.state.known_systems[loc]) {
+        if(!core.state.known_systems[loc] || core.state.known_systems[loc].length === 0) {
             core.state.known_systems[loc] = core.generateSectorBodies(loc);
         }
         core.state.map.sector_bodies = core.state.known_systems[loc];
-        core.log("Sector scan data updated.");
-        handled = true;
+        save(); return res.json(core.state);
     }
 
     if (cmd === "Galaxy Map") {
         core.state.map.view_mode = "galaxy";
-        if (!core.state.map.neighbors || core.state.map.neighbors.length < 3) {
+        if(!core.state.map.neighbors || core.state.map.neighbors.length < 3) {
             core.state.map.neighbors = ["Alpha Centauri", "Proxima", "Wolf 359", "Sirius"];
         }
-        handled = true;
+        save(); return res.json(core.state);
     }
 
-    if (cmd.startsWith("Land")) {
-        const target = cmd.replace("Land on ", "");
-        if (core.state.meta.orbiting === target) {
-            core.state.meta.landed = true;
-            core.state.local_market = core.generateMarket();
-            core.state.local_shipyard = core.generateShipyard();
-            core.state.local_lounge = core.generateLounge();
-        } else {
-            core.log("ERROR: Must establish orbit first.", "error");
-        }
-        handled = true;
-    }
-    
-    if (cmd.startsWith("Takeoff")) { core.state.meta.landed = false; handled = true; }
-    if (cmd.startsWith("Travel")) { core.travel(cmd.replace("Travel to ", "")); handled = true; }
-    if (cmd.startsWith("Mine ")) { core.mineAction(); handled = true; }
-
+    // NAVIGATION
     if (cmd.startsWith("Warp")) {
         const target = cmd.replace("Warp to ", "");
         if(core.state.ship.stats.fuel_warp > 0) {
@@ -161,42 +114,66 @@ app.post('/command', asyncHandler(async (req, res) => {
             core.state.meta.location = target;
             core.state.meta.orbiting = "Deep Space";
             core.state.meta.landed = false;
+            core.state.map.view_mode = "sector";
+            // Gen Destination
             if(!core.state.known_systems[target]) core.state.known_systems[target] = core.generateSectorBodies(target);
             core.state.map.sector_bodies = core.state.known_systems[target];
-            core.state.map.view_mode = "sector";
-            core.log(`Warp jump to ${target} successful.`);
-        } else {
-            core.log("Warp failed. Insufficient fuel.", "error");
-        }
-        handled = true;
+            // Gen Neighbors
+            core.state.map.neighbors = ["Sector " + Math.floor(Math.random()*99), "Nebula", "Void"];
+        } else core.log("Insufficient Warp Fuel.", "error");
+        save(); return res.json(core.state);
     }
 
-    // Commerce Logic
+    if (cmd.startsWith("Travel")) { core.travel(cmd.replace("Travel to ", "")); save(); return res.json(core.state); }
+
+    // LANDING
+    if (cmd.startsWith("Land")) {
+        const target = cmd.replace("Land on ", "");
+        if(core.state.meta.orbiting === target) {
+            core.state.meta.landed = true;
+            core.state.local_market = core.generateMarket();
+            core.state.local_shipyard = core.generateShipyard();
+            core.state.local_lounge = core.generateLounge();
+        } else core.log("Not in orbit.");
+        save(); return res.json(core.state);
+    }
+    if (cmd.startsWith("Takeoff")) { core.state.meta.landed = false; save(); return res.json(core.state); }
+
+    // COMMERCE
     if (cmd.startsWith("Buy ")) {
         const parts = cmd.split(" ");
-        if (parts[1] === "Part") {
+        if(parts[1]==="Part") {
             const name = cmd.replace("Buy Part ", "");
-            const part = core.state.local_shipyard.find(p => p.name === name);
-            if (part && core.state.player.units >= part.price) {
-                core.state.player.units -= part.price;
+            const part = core.state.local_shipyard.find(p=>p.name===name);
+            if(part && core.state.player.units>=part.price) {
+                core.state.player.units-=part.price;
                 core.state.ship.equipment.push(part);
-                core.state.local_shipyard = core.state.local_shipyard.filter(p => p !== part);
-                core.log(`Installed ${part.name}`);
-            } else core.log("Transaction failed.", "error");
+                core.state.local_shipyard = core.state.local_shipyard.filter(p=>p!==part);
+            }
         } else {
-            const qty = parseInt(parts[1]); 
-            const name = parts.slice(2).join(" ");
-            const item = core.state.local_market.find(i => i.name === name);
-            if (item && core.state.player.units >= item.price * qty) {
-                core.state.player.units -= item.price * qty;
-                const ex = core.state.ship.cargo.find(c => c.name === name);
-                if (ex) ex.qty += qty;
-                else core.state.ship.cargo.push({ name: name, qty: qty, val: item.price, weight: 1, type: item.type });
-                if (name.includes("Ionic Gel")) core.state.ship.stats.fuel_ion += qty * 10;
-                if (name.includes("Hyper-Crystals")) core.state.ship.stats.fuel_warp += qty;
-            } else core.log("Transaction failed.", "error");
+            const qty = parseInt(parts[1]); const name = parts.slice(2).join(" ");
+            const item = core.state.local_market.find(i=>i.name===name);
+            if(item && core.state.player.units>=item.price*qty) {
+                core.state.player.units-=item.price*qty;
+                const ex = core.state.ship.cargo.find(c=>c.name===name);
+                if(ex) ex.qty+=qty;
+                else core.state.ship.cargo.push({name:name,qty:qty,val:item.price,weight:1,type:item.type});
+                if(name.includes("Ionic Gel")) core.state.ship.stats.fuel_ion+=qty*10;
+                if(name.includes("Hyper-Crystals")) core.state.ship.stats.fuel_warp+=qty;
+            }
         }
-        handled = true;
+    }
+
+    if (cmd.startsWith("Sell ")) {
+        const parts = cmd.split(" ");
+        const qty = parseInt(parts[1]);
+        const name = parts.slice(2).join(" ");
+        const idx = core.state.ship.cargo.findIndex(c => c.name === name);
+        if (idx > -1 && core.state.ship.cargo[idx].qty >= qty) {
+            core.state.player.units += Math.floor(core.state.ship.cargo[idx].val * 0.8 * qty);
+            core.state.ship.cargo[idx].qty -= qty;
+            if (core.state.ship.cargo[idx].qty <= 0) core.state.ship.cargo.splice(idx, 1);
+        }
     }
 
     if (cmd.startsWith("Recruit ")) {
@@ -206,46 +183,30 @@ app.post('/command', asyncHandler(async (req, res) => {
             core.state.player.units -= r.cost;
             core.state.ship.crew.push(r);
             core.state.local_lounge.recruits = core.state.local_lounge.recruits.filter(c => c !== r);
-            core.log(`Recruited ${r.name}.`);
         }
-        handled = true;
     }
 
+    // ENCOUNTERS & ACTIONS
     if (core.state.encounter) {
         if (cmd === "Attack") core.resolveCombat();
-        else if (cmd === "Ignore" || cmd === "Flee") {
-            core.state.encounter = null;
-            core.log("Encounter resolved.");
-        }
-        handled = true;
+        else if (cmd === "Ignore" || cmd === "Flee") core.state.encounter = null;
+        else if (cmd === "Mine Asteroid") { core.mineAction(); core.state.encounter = null; }
     }
 
-    // AI Fallback for roleplay commands (Flavor)
-    if (!handled) {
-        try {
+    if (cmd.startsWith("Mine ")) { core.mineAction(); save(); return res.json(core.state); }
+
+    // AI FALLBACK
+    if(!["Buy","Sell","Travel","Warp","Land","Takeoff","Scan","Mine","Recruit","Attack","Ignore","Flee"].some(k=>cmd.startsWith(k))) {
+         try {
             const prompt = `Context: GM. State: ${JSON.stringify(core.state)} | Cmd: "${cmd}"`;
             const result = await model.generateContent(prompt);
-            // Warning: Accepting raw JSON from AI is risky, but used here for flavor text updates
-            // const text = result.response.text(); 
-            core.log("Command acknowledged.", "gm"); 
-        } catch (e) {
-            // AI failed, just ignore
-        }
+            core.log("Command processed.", "gm");
+        } catch (e) {}
     }
 
     core.syncShipStats();
-    save();
+    save(); 
     res.json(core.state);
-}));
-
-// --- GLOBAL ERROR HANDLER ---
-app.use((err, req, res, next) => {
-    console.error("SERVER ERROR:", err.stack);
-    res.status(500).json({
-        error: true,
-        message: err.message || "Unknown System Failure",
-        log: [{ type: "error", text: `CRITICAL FAILURE: ${err.message}` }]
-    });
 });
 
 app.listen(PORT, () => console.log(`SYSTEM ONLINE: http://localhost:${PORT}`));

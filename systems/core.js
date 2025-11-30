@@ -1,12 +1,10 @@
-// systems/core.js - The Logic Engine
+// systems/core.js
 const DATA = require('../data/constants');
 
 class GameCore {
     constructor(state) { this.state = state; }
     
-    rng(min, max) { 
-        return Math.floor(Math.random() * (max - min + 1)) + min; 
-    }
+    rng(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
 
     log(text, type="system") { 
         if (!this.state.log) this.state.log = [];
@@ -14,7 +12,6 @@ class GameCore {
         if(this.state.log.length > 40) this.state.log.shift();
     }
 
-    // --- UTILS ---
     getUniqueItems(pool, count) {
         let array = [...pool];
         for (let i = array.length - 1; i > 0; i--) {
@@ -34,9 +31,8 @@ class GameCore {
         const count = this.rng(3, 7);
         for(let i=0; i<count; i++) {
             const pType = DATA.PLANET_TYPES[this.rng(0, DATA.PLANET_TYPES.length-1)];
-            let mineable = (pType.includes("Moon") || pType.includes("Asteroid") || pType.includes("Belt"));
+            const mineable = (pType.includes("Moon") || pType.includes("Asteroid") || pType.includes("Belt"));
             let eco = "Unknown";
-            
             if(pType.includes("Gas")) eco = "Refinery";
             else if(pType.includes("Terran")) eco = "Agrarian";
             else if(pType.includes("Volcanic")) eco = "Industrial";
@@ -77,13 +73,16 @@ class GameCore {
         let lounge = { recruits: [], rumors: ["The void is quiet.", "Pirates in Sector 7."] };
         for(let i=0; i<3; i++) {
             const role = DATA.ROLES[this.rng(0, DATA.ROLES.length-1)];
-            let nameList = DATA.NAMES.Spacer; 
-            if (DATA.NAMES.Spacer) { // Safety Check
+            // Fallback check if name list exists
+            let nameList = DATA.NAMES.Spacer;
+            if(DATA.NAMES.Spacer) {
                 if(role==="Scientist") nameList = DATA.NAMES.HighBorn;
-                if(role==="Marine") nameList = [...DATA.NAMES.Spacer, ...DATA.NAMES.Alien];
+                else if(role==="Marine") nameList = [...DATA.NAMES.Spacer, ...DATA.NAMES.Alien];
+                else if(role==="Engineer") nameList = [...DATA.NAMES.Spacer, ...DATA.NAMES.Synthetic];
             } else {
-                nameList = ["Rookie"]; // Fallback
+                nameList = ["Rookie"];
             }
+
             const name = nameList[this.rng(0, nameList.length-1)];
             lounge.recruits.push({ name: name, role: role, cost: this.rng(100, 600), desc: "Ready for hire." });
         }
@@ -101,15 +100,16 @@ class GameCore {
     mineAction() {
         const roll = Math.random();
         let lootList = DATA.MINERALS.Tier1;
-        if(roll > 0.9) lootList = DATA.MINERALS.Tier3;
-        else if(roll > 0.7) lootList = DATA.MINERALS.Tier2;
-        
+        if(roll > 0.95) lootList = DATA.MINERALS.Tier4;
+        else if(roll > 0.85) lootList = DATA.MINERALS.Tier3;
+        else if(roll > 0.60) lootList = DATA.MINERALS.Tier2;
+
         const ore = lootList[this.rng(0, lootList.length-1)];
         const qty = this.rng(1, 4);
         
         const existing = this.state.ship.cargo.find(c => c.name === ore);
         if(existing) existing.qty += qty;
-        else this.state.ship.cargo.push({ name: ore, qty: qty, val: this.rng(20, 100), weight: 1, type: "Material" });
+        else this.state.ship.cargo.push({ name: ore, qty: qty, val: this.rng(20, 500), weight: 1, type: "Material" });
         
         this.log(`Mining Yield: ${qty}x ${ore}`, "system");
         this.syncShipStats();
@@ -132,7 +132,6 @@ class GameCore {
         }
     }
 
-    // --- MISSING FUNCTION RESTORED ---
     resolveCombat() {
         const enc = this.state.encounter;
         if(!enc) return;
@@ -153,7 +152,7 @@ class GameCore {
         if (!s) return;
         s.crew = s.crew || []; s.equipment = s.equipment || []; s.cargo = s.cargo || [];
         s.weapons = s.equipment.filter(i => i.type === "Weapon");
-        s.systems = s.equipment.filter(i => i.type === "System");
+        s.systems = s.equipment.filter(i => i.type === "System" || i.type === "Engine" || i.type === "Sensor");
         const crewC = s.crew.length;
         const gearC = s.equipment.length;
         const carC = s.cargo.reduce((a,b)=>a+Math.ceil(((b.qty||1)*(b.weight||1))/20), 0);
@@ -161,5 +160,4 @@ class GameCore {
         s.stats.slots_used = crewC + gearC + carC;
     }
 }
-
 module.exports = GameCore;
