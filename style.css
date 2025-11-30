@@ -1,0 +1,334 @@
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&family=JetBrains+Mono:wght@400&display=swap');
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+    background: #050505; /* Deep Void */
+    color: #ccc;
+    font-family: 'JetBrains Mono', monospace;
+    margin: 0; height: 100vh;
+    display: flex; flex-direction: column;
+}
+
+/* --- HEADER --- */
+.top-deck {
+    background: #0a0a0a;
+    border-bottom: 1px solid #222;
+    padding: 10px 20px;
+    display: flex; justify-content: space-between; align-items: center;
+    flex-shrink: 0; height: 60px;
+}
+.stat-group { margin-right: 25px; display: inline-block; font-size: 0.9em; color: #666; }
+.val { color: #fff; font-weight: bold; margin-left: 5px; font-family: 'Rajdhani', sans-serif; font-size: 1.1em; }
+.blue-txt { color: #3b82f6; } .purple-txt { color: #a855f7; }
+
+.danger-btn {
+    background: #ef4444; border: 1px solid #b91c1c; color: #fff;
+    padding: 5px 15px; cursor: pointer; font-weight: bold; border-radius: 4px;
+    font-family: 'Rajdhani', sans-serif; letter-spacing: 1px; transition: background 0.2s;
+}
+.danger-btn:hover { background: #dc2626; box-shadow: 0 0 10px #ef4444; }
+
+/* --- MAIN LAYOUT --- */
+.main-grid {
+    flex-grow: 1;
+    display: grid;
+    grid-template-columns: 350px 1fr 400px; /* Fixed Sides, Fluid Center */
+    gap: 1px; background: #222; /* Grid Borders */
+    overflow: hidden; /* Prevent page scroll */
+}
+
+.sidebar {
+    background: #080808;
+    padding: 20px;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+}
+
+.center-console {
+    background: #000;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    position: relative;
+}
+
+/* --- LEFT PANEL --- */
+.panel-head {
+    color: #66fcf1; font-family: 'Rajdhani', sans-serif;
+    font-size: 1.1em; letter-spacing: 1px;
+    border-bottom: 2px solid #222;
+    margin: 0 0 15px 0; padding-bottom: 5px;
+}
+
+.hud-bars { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+.bar-row { display: flex; align-items: center; font-size: 0.8em; color: #aaa; }
+.bar-lbl { width: 60px; font-weight: bold; color: #66fcf1; }
+.bar-track { flex-grow: 1; height: 8px; background: #1a1a1a; margin: 0 10px; border: 1px solid #333; border-radius: 2px; }
+.bar-fill { height: 100%; transition: width 0.3s ease; }
+.red { background: #ef4444; box-shadow: 0 0 5px #ef4444; }
+.cyan { background: #06b6d4; box-shadow: 0 0 5px #06b6d4; }
+.bar-val { width: 40px; text-align: right; font-weight: bold; color: #fff; }
+
+.divider { height: 1px; background: #222; margin: 15px 0; width: 100%; }
+
+/* Manifest Lists */
+.sub-head { font-family: 'Rajdhani', sans-serif; font-size: 0.9em; margin: 15px 0 5px 0; border-bottom: 1px solid #222; color: #fff; }
+.red-txt { color: #ef4444; } .cyan-txt { color: #06b6d4; } .blue-txt { color: #3b82f6; } .yellow-txt { color: #eab308; }
+.item-list { margin-bottom: 10px; max-height: 150px; overflow-y: auto; padding-right: 5px; }
+.manifest-item { 
+    display: flex; justify-content: space-between; padding: 6px 10px; font-size: 0.85em; 
+    background: #111; border-left: 3px solid #333; margin-bottom: 2px; cursor: pointer; transition: all 0.1s;
+}
+.manifest-item:hover { background: #222; color: #fff; padding-left: 12px; }
+.manifest-item.red-border { border-color: #ef4444; }
+.manifest-item.cyan-border { border-color: #06b6d4; }
+.manifest-item.blue-border { border-color: #3b82f6; }
+.manifest-item.yellow-border { border-color: #eab308; }
+.qty { color: #eab308; font-weight: bold; }
+.empty { color: #444; font-style: italic; padding: 5px; text-align: center; }
+
+/* --- CENTER CONSOLE: VIEWPORT --- */
+.viewport-container {
+    flex-grow: 1; position: relative;
+    display: flex; flex-direction: column;
+    overflow: hidden; background: #050505;
+}
+
+/* Info Panel Overlay */
+.sector-info-panel {
+    position: absolute; top: 20px; left: 20px; right: 20px; z-index: 20;
+    display: flex; justify-content: space-between; align-items: center;
+    background: rgba(10, 10, 15, 0.95); border: 1px solid #333;
+    padding: 10px 20px; border-radius: 4px; backdrop-filter: blur(4px);
+}
+.sector-label { font-size: 0.7em; color: #666; letter-spacing: 1px; }
+.sector-name { font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 1.4em; color: #66fcf1; }
+
+.view-btn {
+    background: #000; border: 1px solid #444; color: #888;
+    padding: 6px 15px; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-weight: bold;
+    margin-left: 5px; transition: all 0.2s;
+}
+.view-btn.active { border-color: #66fcf1; color: #66fcf1; background: rgba(102, 252, 241, 0.1); }
+.view-btn.warning { border-color: #eab308; color: #eab308; }
+.view-btn.warning:hover { background: #eab308; color: #000; }
+
+/* Map Canvas */
+.map-canvas {
+    position: absolute; width: 100%; height: 100%;
+    background: radial-gradient(circle at center, #111 0%, #000 100%);
+    overflow: hidden;
+}
+.central-sun {
+    position: absolute; width: 50px; height: 50px; background: #fbbf24; border-radius: 50%;
+    box-shadow: 0 0 60px #fbbf24; transform: translate(-50%, -50%); z-index: 5;
+}
+.orbit-ring {
+    position: absolute; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.08);
+    pointer-events: none; transform: translate(0, 0);
+}
+.orbital-planet {
+    position: absolute; transform: translate(-50%, -50%);
+    cursor: pointer; z-index: 10; display: flex; flex-direction: column; align-items: center;
+}
+.orbital-planet:hover { z-index: 50; }
+.orbital-planet:hover .planet-icon { transform: scale(1.3); box-shadow: 0 0 20px #fff; }
+.planet-icon { width: 28px; height: 28px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.2); transition: all 0.2s; }
+.orbital-label { margin-top: 5px; font-size: 0.7em; color: #888; pointer-events: none; text-shadow: 0 0 2px #000; }
+.player-ship-icon {
+    position: absolute; color: #66fcf1; font-size: 20px; text-shadow: 0 0 10px #66fcf1;
+    transform: translate(-50%, -50%); z-index: 50; animation: pulse 2s infinite;
+}
+/* Star Map */
+.center-hub { position: absolute; width: 16px; height: 16px; background: #fff; border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 20px #fff; z-index: 20; }
+.star-node { width: 10px; height: 10px; border-radius: 50%; position: absolute; transform: translate(-50%, -50%); cursor: pointer; z-index: 10; transition: all 0.2s; box-shadow: 0 0 5px #fff; }
+.node-label { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); font-size: 10px; color: #aaa; white-space: nowrap; }
+
+/* Planet Types */
+.planet-icon.planet-gas { background: #d97706; } .planet-icon.planet-terran { background: #10b981; } 
+.planet-icon.planet-ice { background: #bae6fd; } .planet-icon.planet-volcanic { background: #ef4444; }
+@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+
+/* --- CENTER: MARKET & LOUNGE OVERLAYS --- */
+.surface-mode {
+    background: #0b0c10; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 30; display: flex; flex-direction: column;
+}
+.market-top {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 15px 30px; border-bottom: 1px solid #222; background: #0f0f0f;
+    flex-shrink: 0;
+}
+.view-title { margin: 0; color: #66fcf1; font-family: 'Rajdhani', sans-serif; letter-spacing: 2px; }
+.close-view-btn { background: #ef4444; border: none; color: #fff; padding: 6px 15px; cursor: pointer; font-weight: bold; border-radius: 2px; }
+
+.table-container {
+    flex-grow: 1; overflow-y: auto; padding: 20px;
+    display: flex; justify-content: center; align-items: flex-start;
+}
+.data-table {
+    width: 100%; max-width: 800px;
+    border-collapse: collapse; font-size: 0.9em;
+}
+.data-table th {
+    text-align: left; border-bottom: 2px solid #66fcf1;
+    padding: 12px; color: #fff; font-family: 'Rajdhani', sans-serif; letter-spacing: 1px;
+}
+.data-table td { border-bottom: 1px solid #222; padding: 10px; color: #ccc; vertical-align: middle; }
+.data-table tr:hover { background: #111; }
+
+/* Buy Controls */
+.buy-cell { display: flex; gap: 10px; align-items: center; }
+.buy-cell input { width: 60px; background: #000; border: 1px solid #333; color: #fff; padding: 4px; }
+.buy-btn {
+    background: #000; border: 1px solid #66fcf1; color: #66fcf1;
+    padding: 5px 15px; font-weight: bold; cursor: pointer; border-radius: 2px; transition: all 0.2s;
+}
+.buy-btn:hover { background: #66fcf1; color: #000; box-shadow: 0 0 10px #66fcf1; }
+.buy-btn.disabled { border-color: #333; color: #555; cursor: not-allowed; opacity: 0.6; box-shadow: none; }
+
+/* LOUNGE LAYOUT FIX */
+.lounge-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 30px;
+    padding: 30px; max-width: 1000px; margin: 0 auto; width: 100%;
+    overflow-y: auto; flex-grow: 1;
+}
+.recruit-card {
+    background: #111; border: 1px solid #333; padding: 15px;
+    margin-bottom: 15px; border-radius: 4px; display: flex; flex-direction: column; gap: 5px;
+}
+.rumor-bubble {
+    background: #151515; border: 1px solid #222; padding: 12px;
+    margin-bottom: 10px; font-style: italic; color: #aaa; border-radius: 6px;
+}
+
+/* --- 6. TACTICAL PANEL (BOTTOM) --- */
+.tactical-panel {
+    background: #0a0a0a; border-top: 1px solid #222;
+    padding: 20px; display: flex; flex-direction: column; gap: 15px;
+    flex-shrink: 0; /* PREVENTS SQUASHING */
+    min-height: 200px; /* ENSURES VISIBILITY */
+}
+.tac-grid {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; flex-grow: 1;
+}
+.tac-col { display: flex; flex-direction: column; gap: 10px; }
+
+.tac-btn {
+    background: #151515; border: 1px solid #333; color: #aaa;
+    padding: 12px; text-align: center; font-size: 0.9em;
+    cursor: pointer; transition: all 0.2s;
+    font-family: 'Rajdhani', sans-serif; font-weight: 700; letter-spacing: 1px;
+}
+.tac-btn:hover { border-color: #66fcf1; color: #fff; background: #222; }
+.tac-btn.red { border-left: 3px solid #ef4444; }
+.tac-btn.yellow { border-left: 3px solid #eab308; }
+.tac-btn.purple { border-left: 3px solid #a855f7; }
+
+.cmd-line { display: flex; gap: 10px; height: 40px; }
+.prompt { line-height: 40px; color: #66fcf1; font-weight: bold; }
+input[type="text"] {
+    flex-grow: 1; background: #000; border: 1px solid #333;
+    color: #fff; padding: 0 15px; font-family: 'JetBrains Mono', monospace; font-size: 1em;
+}
+button#btn-engage {
+    background: #66fcf1; border: none; font-weight: bold;
+    padding: 0 30px; cursor: pointer; color: #000; letter-spacing: 1px;
+}
+
+/* --- 7. RIGHT PANEL (SHIP) --- */
+.ship-header-info { text-align: center; margin-bottom: 20px; }
+.ship-class-title {
+    color: #fff; font-weight: bold; font-family: 'Rajdhani', sans-serif;
+    font-size: 1.5em; margin-bottom: 5px; letter-spacing: 2px;
+}
+.ship-stats-row {
+    font-size: 0.9em; color: #888;
+    display: flex; justify-content: center; gap: 20px;
+}
+.ship-stats-row span span { color: #66fcf1; font-weight: bold; }
+
+.panel-tabs { display: flex; border-bottom: 1px solid #333; margin-bottom: 15px; }
+.p-tab {
+    flex: 1; background: transparent; border: none; color: #666;
+    padding: 10px; cursor: pointer; font-family: 'Rajdhani', sans-serif; font-weight: 700;
+}
+.p-tab.active {
+    color: #66fcf1; border-bottom: 2px solid #66fcf1;
+    background: rgba(102, 252, 241, 0.05);
+}
+.panel-scroll { overflow-y: auto; flex-grow: 1; padding-right: 5px; }
+
+/* SHIP HULL GRID */
+.ship-schematic-container {
+    display: flex; flex-direction: column; align-items: center;
+    margin-top: 10px; overflow: hidden; height: 100%;
+}
+.ship-hull {
+    background: rgba(10, 10, 15, 0.9);
+    border: 2px solid #333;
+    width: 300px; /* Fixed width for stability */
+    flex-grow: 1; display: flex; flex-direction: column;
+    padding: 40px 15px 20px 15px; position: relative;
+    clip-path: polygon(50% 0%, 100% 50px, 100% 100%, 85% 95%, 15% 95%, 0% 100%, 0% 50px);
+    box-shadow: inset 0 0 40px rgba(0,0,0,0.8);
+}
+.ship-hull::before {
+    content: ''; position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+    width: 80px; height: 25px; background: #66fcf1; opacity: 0.2;
+    clip-path: polygon(20% 0%, 80% 0%, 100% 100%, 0% 100%);
+}
+
+.slot-grid-container { overflow-y: auto; padding-right: 5px; flex-grow: 1; }
+.slot-grid {
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    gap: 4px; padding-bottom: 20px;
+}
+.slot {
+    aspect-ratio: 1; background: #1a1a1a; border: 1px solid #333;
+    border-radius: 2px; cursor: help; position: relative;
+    display: flex; align-items: center; justify-content: center;
+}
+.slot:hover { border-color: #fff; z-index: 100; transform: scale(1.1); box-shadow: 0 0 15px rgba(255,255,255,0.2); }
+.slot-tag { font-size: 0.6em; font-weight: bold; color: rgba(255,255,255,0.9); pointer-events: none; }
+
+.slot.filled.crew { background: #1e3a8a; border-color: #3b82f6; }
+.slot.filled.weapon { background: #7f1d1d; border-color: #ef4444; }
+.slot.filled.system { background: #0e7490; border-color: #06b6d4; }
+.slot.filled.cargo { background: #713f12; border-color: #eab308; }
+.slot.empty { background: #0f0f0f; border: 1px dashed #444; opacity: 1; }
+
+/* --- 8. MODALS --- */
+.hidden { display: none !important; }
+.modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.9); z-index: 200;
+    display: flex; justify-content: center; align-items: center; backdrop-filter: blur(5px);
+}
+.modal-window {
+    width: 600px; background: #0a0a0a; border: 1px solid #66fcf1;
+    padding: 30px; box-shadow: 0 0 60px rgba(0,0,0,0.8);
+}
+.modal-header { display: flex; justify-content: space-between; border-bottom: 1px solid #333; margin-bottom: 20px; padding-bottom: 10px; }
+.modal-header h2 { margin: 0; color: #fff; font-family: 'Rajdhani', sans-serif; letter-spacing: 2px; }
+.close-btn { background: none; border: none; color: #666; font-size: 2em; cursor: pointer; }
+.close-btn:hover { color: #fff; }
+.modal-content-grid { display: flex; gap: 30px; margin-bottom: 30px; }
+.planet-visual-large {
+    width: 120px; height: 120px; border-radius: 50%; background: #333; border: 2px solid #fff;
+    box-shadow: 0 0 30px rgba(255,255,255,0.1);
+}
+.data-tag { font-size: 0.9em; color: #888; margin-bottom: 8px; letter-spacing: 1px; }
+.data-tag span { color: #fff; font-weight: bold; margin-left: 5px; }
+.lore-text { font-style: italic; color: #bbb; line-height: 1.5; font-size: 0.95em; }
+
+.modal-footer { display: flex; gap: 15px; justify-content: flex-end; border-top: 1px solid #333; padding-top: 20px; flex-wrap: wrap; }
+.action-btn {
+    background: #000; border: 1px solid #66fcf1; color: #66fcf1;
+    padding: 10px 20px; font-weight: bold; cursor: pointer;
+    font-family: 'Rajdhani', sans-serif; letter-spacing: 1px; transition: all 0.2s;
+}
+.action-btn:hover { background: #66fcf1; color: #000; box-shadow: 0 0 15px #66fcf1; }
+
+.encounter-box { border: 2px solid #ef4444 !important; box-shadow: 0 0 100px rgba(239, 68, 68, 0.3) !important; width: 600px; }
+.log-entry { margin-bottom: 8px; border-left: 2px solid #333; padding-left: 10px; font-size: 0.85em; }

@@ -1,0 +1,384 @@
+{
+  "meta": {
+    "location": "Veridia Prime",
+    "date": "2400.01.01",
+    "landed": false,
+    "orbiting": "Frostbite"
+  },
+  "player": {
+    "units": 1000
+  },
+  "ship": {
+    "class": "Cutter",
+    "caps": {
+      "crew": 6,
+      "weapons": 2,
+      "cargo": 20,
+      "systems": 4
+    },
+    "stats": {
+      "hull": 100,
+      "shields": 100,
+      "fuel_ion": 90,
+      "fuel_warp": 2,
+      "slots_max": 32,
+      "slots_used": 4
+    },
+    "crew": [
+      {
+        "name": "Shepard",
+        "role": "Captain",
+        "salary": 0
+      }
+    ],
+    "equipment": [
+      {
+        "name": "Mining Laser",
+        "type": "Weapon",
+        "tag": "LAS",
+        "weight": 2,
+        "price": 200
+      },
+      {
+        "name": "Standard Fuel Tank",
+        "type": "System",
+        "tag": "TNK",
+        "weight": 5,
+        "price": 200
+      }
+    ],
+    "cargo": [
+      {
+        "name": "Nutri-Paste Tubes",
+        "qty": 5,
+        "val": 5,
+        "weight": 0.5
+      }
+    ],
+    "weapons": [
+      {
+        "name": "Mining Laser",
+        "type": "Weapon",
+        "tag": "LAS",
+        "weight": 2,
+        "price": 200
+      }
+    ],
+    "systems": [
+      {
+        "name": "Standard Fuel Tank",
+        "type": "System",
+        "tag": "TNK",
+        "weight": 5,
+        "price": 200
+      }
+    ]
+  },
+  "map": {
+    "view_mode": "sector",
+    "neighbors": [
+      "Sector 4",
+      "The Void"
+    ],
+    "sector_bodies": [
+      {
+        "name": "Veridia Prime",
+        "type": "Terran",
+        "economy": "Agrarian",
+        "desc": "Sector capital.",
+        "x": 0,
+        "y": 0
+      },
+      {
+        "name": "The Anvil",
+        "type": "Volcanic",
+        "economy": "Industrial",
+        "desc": "Smog world.",
+        "x": 200,
+        "y": -150
+      },
+      {
+        "name": "Echo IV",
+        "type": "Gas Giant",
+        "economy": "Mining",
+        "desc": "Gas giant.",
+        "x": -180,
+        "y": 100
+      },
+      {
+        "name": "Frostbite",
+        "type": "Ice World",
+        "economy": "Research",
+        "desc": "Frozen moon.",
+        "x": 50,
+        "y": 200
+      }
+    ]
+  },
+  "known_systems": {
+    "Veridia Prime": [
+      {
+        "name": "Veridia Prime",
+        "type": "Terran",
+        "economy": "Agrarian",
+        "desc": "Sector capital.",
+        "x": 0,
+        "y": 0
+      },
+      {
+        "name": "The Anvil",
+        "type": "Volcanic",
+        "economy": "Industrial",
+        "desc": "Smog world.",
+        "x": 200,
+        "y": -150
+      },
+      {
+        "name": "Echo IV",
+        "type": "Gas Giant",
+        "economy": "Mining",
+        "desc": "Gas giant.",
+        "x": -180,
+        "y": 100
+      },
+      {
+        "name": "Frostbite",
+        "type": "Ice World",
+        "economy": "Research",
+        "desc": "Frozen moon.",
+        "x": 50,
+        "y": 200
+      }
+    ]
+  },
+  "local_market": [
+    {
+      "name": "Ionic Gel",
+      "type": "Fuel",
+      "price": 10,
+      "qty": 200,
+      "rarity": {
+        "name": "Common",
+        "color": "#3b82f6"
+      }
+    },
+    {
+      "name": "Hyper-Crystals",
+      "type": "Fuel",
+      "price": 500,
+      "qty": 5,
+      "rarity": {
+        "name": "Rare",
+        "color": "#a855f7"
+      }
+    },
+    {
+      "name": "Gene-Seeds",
+      "type": "Agri",
+      "price": 243,
+      "qty": 95,
+      "rarity": {
+        "name": "Standard",
+        "color": "#fff"
+      }
+    },
+    {
+      "name": "Stasis Pods",
+      "type": "Medical",
+      "price": 279,
+      "qty": 92,
+      "rarity": {
+        "name": "Standard",
+        "color": "#fff"
+      }
+    },
+    {
+      "name": "Syn-Meat",
+      "type": "Food",
+      "price": 272,
+      "qty": 50,
+      "rarity": {
+        "name": "Standard",
+        "color": "#fff"
+      }
+    },
+    {
+      "name": "Grav-Plating",
+      "type": "Tech",
+      "price": 42,
+      "qty": 88,
+      "rarity": {
+        "name": "Standard",
+        "color": "#fff"
+      }
+    },
+    {
+      "name": "Pan-Cure Serums",
+      "type": "Medical",
+      "price": 208,
+      "qty": 76,
+      "rarity": {
+        "name": "Standard",
+        "color": "#fff"
+      }
+    },
+    {
+      "name": "Dark Matter",
+      "type": "Minerals",
+      "price": 218,
+      "qty": 83,
+      "rarity": {
+        "name": "Standard",
+        "color": "#fff"
+      }
+    },
+    {
+      "name": "Titanium Ore",
+      "type": "Minerals",
+      "price": 132,
+      "qty": 19,
+      "rarity": {
+        "name": "Standard",
+        "color": "#fff"
+      }
+    },
+    {
+      "name": "Dark Matter",
+      "type": "Minerals",
+      "price": 178,
+      "qty": 45,
+      "rarity": {
+        "name": "Standard",
+        "color": "#fff"
+      }
+    },
+    {
+      "name": "Terraforming Bacteria",
+      "type": "Agri",
+      "price": 262,
+      "qty": 43,
+      "rarity": {
+        "name": "Standard",
+        "color": "#fff"
+      }
+    },
+    {
+      "name": "Grav-Plating",
+      "type": "Tech",
+      "price": 131,
+      "qty": 63,
+      "rarity": {
+        "name": "Standard",
+        "color": "#fff"
+      }
+    },
+    {
+      "name": "Gene-Seeds",
+      "type": "Agri",
+      "price": 21,
+      "qty": 29,
+      "rarity": {
+        "name": "Standard",
+        "color": "#fff"
+      }
+    },
+    {
+      "name": "Isotopes",
+      "type": "Medical",
+      "price": 149,
+      "qty": 42,
+      "rarity": {
+        "name": "Standard",
+        "color": "#fff"
+      }
+    }
+  ],
+  "local_shipyard": [
+    {
+      "name": "Scanner Array",
+      "type": "System",
+      "tag": "SCN",
+      "price": 1200,
+      "weight": 2
+    },
+    {
+      "name": "Railgun",
+      "type": "Weapon",
+      "tag": "KIN",
+      "price": 1500,
+      "weight": 5
+    },
+    {
+      "name": "Mining Laser",
+      "type": "Weapon",
+      "tag": "LAS",
+      "price": 200,
+      "weight": 2
+    },
+    {
+      "name": "Pulse Laser",
+      "type": "Weapon",
+      "tag": "LAS",
+      "price": 500,
+      "weight": 2
+    },
+    {
+      "name": "Nav-Computer",
+      "type": "System",
+      "tag": "NAV",
+      "price": 800,
+      "weight": 1
+    },
+    {
+      "name": "Plasma Torpedo",
+      "type": "Weapon",
+      "tag": "MSL",
+      "price": 2500,
+      "weight": 4
+    }
+  ],
+  "local_lounge": {
+    "recruits": [
+      {
+        "name": "Jork",
+        "role": "Marine",
+        "cost": 584,
+        "desc": "Ready for hire."
+      },
+      {
+        "name": "Liara",
+        "role": "Scientist",
+        "cost": 552,
+        "desc": "Ready for hire."
+      },
+      {
+        "name": "Mordin",
+        "role": "Pilot",
+        "cost": 210,
+        "desc": "Ready for hire."
+      }
+    ],
+    "rumors": [
+      "The void is quiet."
+    ]
+  },
+  "encounter": null,
+  "log": [
+    {
+      "type": "system",
+      "text": "System Online."
+    },
+    {
+      "text": "ERROR: Must orbit target to land.",
+      "type": "error"
+    },
+    {
+      "text": "ERROR: Must orbit target to land.",
+      "type": "error"
+    },
+    {
+      "text": "Orbit established: Frostbite",
+      "type": "system"
+    }
+  ]
+}
