@@ -34,36 +34,47 @@ function getStarVisual(type) {
 function stringHash(str) { let hash=0; for(let i=0;i<str.length;i++) hash=str.charCodeAt(i)+((hash<<5)-hash); return Math.abs(Math.sin(hash)*10000)%1; }
 
 function render(data) {
-    if (!data) return;
+    if (!data) {
+        console.warn("No data to render");
+        return;
+    }
     currentData = data;
     
-    if(els.units) els.units.innerText = data.player.units + " U";
-    if(els.fuelIon) els.fuelIon.innerText = data.ship.stats.fuel_ion; 
-    if(els.loc) els.loc.innerText = data.meta.landed ? "SURFACE" : `ORBIT: ${data.meta.orbiting}`;
-    
-    if(els.hullBar) els.hullBar.style.width = data.ship.stats.hull + "%"; 
+    // Defensive null checks
+    try {
+        if(els.units && data.player) els.units.innerText = (data.player.units || 0) + " U";
+        if(els.fuelIon && data.ship && data.ship.stats) els.fuelIon.innerText = data.ship.stats.fuel_ion || 0;
+        if(els.loc && data.meta) els.loc.innerText = data.meta.landed ? "SURFACE" : `ORBIT: ${data.meta.orbiting || 'Unknown'}`;
+        
+        if(els.hullBar && data.ship && data.ship.stats) els.hullBar.style.width = (data.ship.stats.hull || 0) + "%";
+        if(els.hullTxt && data.ship && data.ship.stats) els.hullTxt.innerText = (data.ship.stats.hull || 0) + "%";
 
-    populateList(els.wepList, data.ship.weapons, 'red');
-    populateList(els.sysList, data.ship.systems, 'cyan');
-    populateList(els.crewList, data.ship.crew, 'blue');
-    populateList(els.cargoList, data.ship.cargo, 'yellow', true);
+        if(data.ship) {
+            populateList(els.wepList, data.ship.weapons, 'red');
+            populateList(els.sysList, data.ship.systems, 'cyan');
+            populateList(els.crewList, data.ship.crew, 'blue');
+            populateList(els.cargoList, data.ship.cargo, 'yellow', true);
+            if(els.shipClass) els.shipClass.innerText = (data.ship.class || 'Unknown').toUpperCase();
+            if(els.slotCount && data.ship.stats) els.slotCount.innerText = `${data.ship.stats.slots_used || 0}/${data.ship.stats.slots_max || 32}`;
+        }
 
-    if(els.shipClass) els.shipClass.innerText = data.ship.class.toUpperCase();
-    if(els.slotCount) els.slotCount.innerText = `${data.ship.stats.slots_used}/${data.ship.stats.slots_max}`;
+        if (data.encounter) {
+            if(els.encModal) els.encModal.classList.remove('hidden');
+            if(els.encTitle) els.encTitle.innerText = data.encounter.type || "Encounter";
+            if(els.encText) els.encText.innerText = data.encounter.text || "Unknown";
+            if(els.encActions) els.encActions.innerHTML = data.encounter.hostile 
+                ? `<button onclick="sendCmd('Attack')" class="action-btn">ATTACK</button><button onclick="sendCmd('Flee')" class="action-btn">FLEE</button>`
+                : `<button onclick="sendCmd('Mine Asteroid')" class="action-btn">MINE</button><button onclick="sendCmd('Ignore')" class="action-btn">IGNORE</button>`;
+        } else {
+            if(els.encModal) els.encModal.classList.add('hidden');
+        }
 
-    if (data.encounter) {
-        if(els.encModal) els.encModal.classList.remove('hidden');
-        if(els.encTitle) els.encTitle.innerText = data.encounter.type;
-        if(els.encText) els.encText.innerText = data.encounter.text;
-        els.encActions.innerHTML = data.encounter.hostile 
-            ? `<button onclick="sendCmd('Attack')" class="action-btn">ATTACK</button><button onclick="sendCmd('Flee')" class="action-btn">FLEE</button>`
-            : `<button onclick="sendCmd('Mine Asteroid')" class="action-btn">MINE</button><button onclick="sendCmd('Ignore')" class="action-btn">IGNORE</button>`;
-    } else {
-        if(els.encModal) els.encModal.classList.add('hidden');
+        updateCenterView();
+        renderRightPanel();
+    } catch (e) {
+        console.error("Render error:", e);
+        if(currentData && currentData.log) currentData.log.push({type: 'error', text: `Render error: ${e.message}`});
     }
-
-    updateCenterView();
-    renderRightPanel();
 }
 
 function populateList(container, items, color, isCargo=false) {
@@ -98,7 +109,7 @@ window.showMarket = (type) => {
     els.marketDisplay.classList.add('hidden'); els.shipyardDisplay.classList.add('hidden'); els.loungeDisplay.classList.add('hidden');
     els.marketDisplay.classList.remove('active-view'); els.shipyardDisplay.classList.remove('active-view'); els.loungeDisplay.classList.remove('active-view');
 
-    if(type==='goods'){ els.marketDisplay.classList.remove('hidden'); els.marketDisplay.classList.add('active-view'); renderCommodities(marketMode); }
+    if(type==='goods'){ els.marketDisplay.classList.remove('hidden'); els.marketDisplay.classList.add('active-view'); renderCommodities(); }
     else if(type==='ships'){ els.shipyardDisplay.classList.remove('hidden'); els.shipyardDisplay.classList.add('active-view'); renderShipyard(); }
     else { els.loungeDisplay.classList.remove('hidden'); els.loungeDisplay.classList.add('active-view'); renderLounge(); }
 }
@@ -191,27 +202,29 @@ window.openDetailModal = (t, d) => {
     els.modal.classList.remove('hidden');
 }
 window.closeModal = () => els.modal.classList.add('hidden');
-window.sendCmd = async(txt) => {
-    if(!txt) txt=els.input.value; els.input.value='';
-    try {
-        const res = await fetch('http://localhost:3000/command', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({command: txt}) });
+window.sendCmd = async(txt) => { 
+    if(!txt) txt=els.input.value; 
+    els.input.value=''; 
+    try { 
+        const res = await fetch('http://localhost:3000/command', { 
+            method:'POST', 
+            headers:{'Content-Type':'application/json'}, 
+            body: JSON.stringify({command: txt}) 
+        }); 
         if (!res.ok) {
-            const detail = await res.text().catch(() => res.statusText);
-            console.error('Server error', res.status, detail);
-            if (currentData && currentData.log) {
-                currentData.log.unshift({ type: 'system', text: `Server error ${res.status}: ${detail}` });
-                render(currentData);
-            }
+            const errorData = await res.json().catch(() => ({error: res.statusText}));
+            if(currentData && currentData.log) currentData.log.push({type: 'error', text: `Server error: ${errorData.error || res.statusText}`});
+            render(currentData);
             return;
         }
-        render(await res.json());
-    } catch(e) {
-        console.error('Network error sending command', e);
-        if (currentData && currentData.log) {
-            currentData.log.unshift({ type: 'system', text: `Connection failed: ${e.message || e}` });
-            render(currentData);
-        }
-    }
+        const data = await res.json();
+        render(data); 
+    } catch(e) { 
+        const msg = `Network error: ${e.message}`;
+        if(currentData && currentData.log) currentData.log.push({type: 'error', text: msg});
+        render(currentData);
+        console.error(msg, e);
+    } 
 }
 window.setMapMode = (m) => sendCmd(m==='galaxy'?'Galaxy Map':'Scan Sector');
 window.switchRightTab = (t) => { activeRightTab=t; document.querySelectorAll('.p-tab').forEach(b=>b.classList.remove('active')); document.getElementById('tab-'+t).classList.add('active'); renderRightPanel(); }

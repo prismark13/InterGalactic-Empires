@@ -20,7 +20,6 @@ class GameCore {
         return array.slice(0, count);
     }
 
-    // --- GENERATORS ---
     generateSectorBodies(sysName) {
         if (sysName.includes("Veridia")) return DATA.STARTER_PLANETS;
         
@@ -77,6 +76,8 @@ class GameCore {
                 if(role==="Scientist") nameList = DATA.NAMES.HighBorn;
                 if(role==="Marine") nameList = [...DATA.NAMES.Spacer, ...DATA.NAMES.Alien];
                 if(role==="Engineer") nameList = [...DATA.NAMES.Spacer, ...DATA.NAMES.Synthetic];
+            } else {
+                nameList = ["Rookie"];
             }
             const name = nameList[this.rng(0, nameList.length-1)];
             lounge.recruits.push({ name: name, role: role, cost: this.rng(100, 600), desc: "Ready for hire." });
@@ -107,7 +108,7 @@ class GameCore {
     }
 
     travel(target) {
-        if(this.state.ship.stats.fuel_ion >= 10) {
+        if (this.state.ship.stats.fuel_ion >= 10) {
             this.state.ship.stats.fuel_ion -= 10;
             if (Math.random() < 0.25) {
                 this.state.encounter = this.generateEncounter();
