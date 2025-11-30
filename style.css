@@ -28,7 +28,7 @@ body {
 }
 .danger-btn:hover { background: #dc2626; box-shadow: 0 0 10px #ef4444; }
 
-/* --- MAIN LAYOUT --- */
+/* --- MAIN LAYOUT (Your Widths) --- */
 .main-grid {
     flex-grow: 1;
     display: grid;
@@ -132,24 +132,30 @@ body {
 }
 .orbital-planet:hover { z-index: 50; }
 .orbital-planet:hover .planet-icon { transform: scale(1.3); box-shadow: 0 0 20px #fff; }
-.planet-icon { width: 28px; height: 28px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.2); transition: all 0.2s; }
 .orbital-label { margin-top: 5px; font-size: 0.7em; color: #888; pointer-events: none; text-shadow: 0 0 2px #000; }
 .player-ship-icon {
     position: absolute; color: #66fcf1; font-size: 20px; text-shadow: 0 0 10px #66fcf1;
     transform: translate(-50%, -50%); z-index: 50; animation: pulse 2s infinite;
 }
+
+/* Planet Icons (Expanded) */
+.planet-icon { width: 28px; height: 28px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.2); transition: all 0.2s; }
+.planet-icon.planet-gas { background: radial-gradient(circle at 30% 30%, #d97706, #78350f); border-color: #fcd34d; }
+.planet-icon.planet-terran { background: radial-gradient(circle at 30% 30%, #10b981, #064e3b); border-color: #34d399; }
+.planet-icon.planet-ice { background: radial-gradient(circle at 30% 30%, #bae6fd, #0284c7); border-color: #7dd3fc; }
+.planet-icon.planet-volcanic { background: radial-gradient(circle at 30% 30%, #ef4444, #7f1d1d); border-color: #f87171; }
+.planet-icon.planet-ocean { background: radial-gradient(circle at 30% 30%, #3b82f6, #1e3a8a); border-color: #60a5fa; }
+.planet-icon.planet-desert { background: radial-gradient(circle at 30% 30%, #eab308, #713f12); border-color: #facc15; }
+.planet-icon.planet-toxic { background: radial-gradient(circle at 30% 30%, #a3e635, #365314); border-color: #bef264; }
+.planet-icon.planet-moon { width: 14px; height: 14px; background: #9ca3af; border-color: #e5e7eb; }
+.planet-icon.planet-belt { background: transparent; border: 2px dashed #888; border-radius: 0; transform: rotate(45deg); }
+
 /* Star Map */
 .center-hub { position: absolute; width: 16px; height: 16px; background: #fff; border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 20px #fff; z-index: 20; }
 .star-node { width: 10px; height: 10px; border-radius: 50%; position: absolute; transform: translate(-50%, -50%); cursor: pointer; z-index: 10; transition: all 0.2s; box-shadow: 0 0 5px #fff; }
 .node-label { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); font-size: 10px; color: #aaa; white-space: nowrap; }
 
-/* Planet Types */
-.planet-icon.planet-gas { background: #d97706; } .planet-icon.planet-terran { background: #10b981; } 
-.planet-icon.planet-ice { background: #bae6fd; } .planet-icon.planet-volcanic { background: #ef4444; }
-@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
-
-
-/* --- CENTER: MARKET & LOUNGE OVERLAYS --- */
+/* --- CENTER: MARKET & LOUNGE --- */
 .surface-mode {
     background: #0b0c10; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
     z-index: 30; display: flex; flex-direction: column;
@@ -160,7 +166,10 @@ body {
     flex-shrink: 0;
 }
 .view-title { margin: 0; color: #66fcf1; font-family: 'Rajdhani', sans-serif; letter-spacing: 2px; }
-.close-view-btn { background: #ef4444; border: none; color: #fff; padding: 6px 15px; cursor: pointer; font-weight: bold; border-radius: 2px; }
+.close-view-btn {
+    background: #ef4444; border: none; color: #fff; padding: 6px 15px;
+    cursor: pointer; font-weight: bold; border-radius: 2px;
+}
 
 .table-container {
     flex-grow: 1; overflow-y: auto; padding: 20px;
@@ -179,7 +188,7 @@ body {
 
 /* Buy Controls */
 .buy-cell { display: flex; gap: 10px; align-items: center; }
-.buy-cell input { width: 60px; background: #000; border: 1px solid #333; color: #fff; padding: 4px; }
+.buy-cell input { width: 60px; background: #000; border: 1px solid #333; color: #fff; padding: 4px; font-family: inherit; cursor: pointer; }
 .buy-btn {
     background: #000; border: 1px solid #66fcf1; color: #66fcf1;
     padding: 5px 15px; font-weight: bold; cursor: pointer; border-radius: 2px; transition: all 0.2s;
@@ -187,7 +196,7 @@ body {
 .buy-btn:hover { background: #66fcf1; color: #000; box-shadow: 0 0 10px #66fcf1; }
 .buy-btn.disabled { border-color: #333; color: #555; cursor: not-allowed; opacity: 0.6; box-shadow: none; }
 
-/* LOUNGE LAYOUT FIX */
+/* --- LOUNGE (Missing in your version) --- */
 .lounge-grid {
     display: grid; grid-template-columns: 1fr 1fr; gap: 30px;
     padding: 30px; max-width: 1000px; margin: 0 auto; width: 100%;
@@ -204,14 +213,11 @@ body {
 
 /* --- 6. TACTICAL PANEL (BOTTOM) --- */
 .tactical-panel {
-    background: #0a0a0a; border-top: 1px solid #222;
+    height: 200px; background: #0a0a0a; border-top: 1px solid #222;
     padding: 20px; display: flex; flex-direction: column; gap: 15px;
-    flex-shrink: 0; /* PREVENTS SQUASHING */
-    min-height: 200px; /* ENSURES VISIBILITY */
+    flex-shrink: 0;
 }
-.tac-grid {
-    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; flex-grow: 1;
-}
+.tac-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; flex-grow: 1; }
 .tac-col { display: flex; flex-direction: column; gap: 10px; }
 
 .tac-btn {
@@ -236,7 +242,7 @@ button#btn-engage {
     padding: 0 30px; cursor: pointer; color: #000; letter-spacing: 1px;
 }
 
-/* --- 7. RIGHT PANEL (SHIP) --- */
+/* --- 7. RIGHT PANEL (SHIP SCHEMATIC) --- */
 .ship-header-info { text-align: center; margin-bottom: 20px; }
 .ship-class-title {
     color: #fff; font-weight: bold; font-family: 'Rajdhani', sans-serif;
@@ -271,7 +277,7 @@ button#btn-engage {
     flex-grow: 1; display: flex; flex-direction: column;
     padding: 40px 15px 20px 15px; position: relative;
     clip-path: polygon(50% 0%, 100% 50px, 100% 100%, 85% 95%, 15% 95%, 0% 100%, 0% 50px);
-    box-shadow: inset 0 0 40px rgba(0,0,0,0.8);
+    box-shadow: inset 0 0 40px rgba(0,0,0,0.9);
 }
 .ship-hull::before {
     content: ''; position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
@@ -297,6 +303,21 @@ button#btn-engage {
 .slot.filled.system { background: #0e7490; border-color: #06b6d4; }
 .slot.filled.cargo { background: #713f12; border-color: #eab308; }
 .slot.empty { background: #0f0f0f; border: 1px dashed #444; opacity: 1; }
+
+/* STAR COLORS */
+.central-sun.star-blue { background: #3b82f6; box-shadow: 0 0 60px #3b82f6; }
+.central-sun.star-red { background: #ef4444; box-shadow: 0 0 60px #ef4444; }
+.central-sun.star-yellow { background: #fbbf24; box-shadow: 0 0 60px #fbbf24; }
+.central-sun.star-white { background: #fff; box-shadow: 0 0 60px #fff; }
+.central-sun.star-pulsar { background: #a855f7; box-shadow: 0 0 60px #a855f7; animation: pulse 0.1s infinite; }
+.central-sun.star-blackhole { background: #000; border: 2px solid #fff; box-shadow: inset 0 0 20px #fff; }
+
+/* PLANET COLORS */
+.planet-icon.planet-desert { background: #eab308; }
+.planet-icon.planet-ocean { background: #3b82f6; border-color: #1e3a8a; }
+.planet-icon.planet-toxic { background: #84cc16; border-color: #365314; }
+.planet-icon.planet-belt { background: transparent; border: 2px dashed #666; }
+.planet-icon.planet-moon { background: #9ca3af; width: 14px; height: 14px; }
 
 /* --- 8. MODALS --- */
 .hidden { display: none !important; }
@@ -332,3 +353,5 @@ button#btn-engage {
 
 .encounter-box { border: 2px solid #ef4444 !important; box-shadow: 0 0 100px rgba(239, 68, 68, 0.3) !important; width: 600px; }
 .log-entry { margin-bottom: 8px; border-left: 2px solid #333; padding-left: 10px; font-size: 0.85em; }
+
+@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }

@@ -10,148 +10,80 @@
 
     <div id="modal-overlay" class="modal-overlay hidden">
         <div class="modal-window">
-            <div class="modal-header">
-                <h2 id="m-title">DETAILS</h2>
-                <button onclick="closeModal()" class="close-btn">×</button>
-            </div>
+            <div class="modal-header"><h2 id="m-title">DETAILS</h2><button onclick="closeModal()" class="close-btn">×</button></div>
             <div class="modal-body" id="m-body"></div>
             <div class="modal-footer" id="m-footer"></div>
         </div>
     </div>
-    
+
     <div id="encounter-overlay" class="modal-overlay hidden encounter-box">
         <div class="modal-window">
-            <h2 id="enc-title" style="color:#ef4444; border-bottom:1px solid #ef4444; padding-bottom:10px; margin-bottom:15px;">ALERT</h2>
-            <p id="enc-text" style="font-size:1.2em; margin-bottom:20px;">...</p>
-            <div id="enc-actions" style="display:flex; gap:10px; justify-content:flex-end;"></div>
+            <div class="modal-header" style="border-color:#ef4444"><h2 id="enc-title" style="color:#ef4444">ALERT</h2></div>
+            <div class="modal-body"><p id="enc-text" class="lore-text" style="font-size:1.2em;color:#fff">...</p></div>
+            <div class="modal-footer" id="enc-actions"></div>
         </div>
     </div>
 
     <header class="top-deck">
         <div class="header-left">
             <div class="stat-group">CREDITS <span id="ui-units" class="val">0</span></div>
-            <div class="stat-group">ION <span id="ui-fuel-ion" class="val blue-txt">0</span></div>
-            <div class="stat-group">WARP <span id="ui-fuel-warp" class="val purple-txt">0</span></div>
+            <div class="stat-group">ION FUEL <span id="ui-fuel-ion" class="val blue-txt">0</span></div>
+            <div class="stat-group">WARP FUEL <span id="ui-fuel-warp" class="val purple-txt">0</span></div>
         </div>
         <button onclick="restartGame()" class="danger-btn">HARD RESET</button>
     </header>
 
     <main class="main-grid">
-        
         <aside class="sidebar left-panel">
             <h3 class="panel-head">STATUS</h3>
-            
             <div class="hud-bars">
-                <div class="bar-row">
-                    <span class="bar-lbl">HULL</span>
-                    <div class="bar-track"><div id="ui-hull-bar" class="bar-fill red"></div></div>
-                    <span class="bar-val" id="ui-hull-txt">100%</span>
-                </div>
-                <div class="bar-row">
-                    <span class="bar-lbl">SHIELD</span>
-                    <div class="bar-track"><div id="ui-shield-bar" class="bar-fill cyan"></div></div>
-                    <span class="bar-val" id="ui-shield-txt">100%</span>
-                </div>
+                <div class="bar-row"><span class="bar-lbl">HULL</span><div class="bar-track"><div id="ui-hull-bar" class="bar-fill red"></div></div><span class="bar-val" id="ui-hull-txt">100%</span></div>
+                <div class="bar-row"><span class="bar-lbl">SHIELD</span><div class="bar-track"><div id="ui-shield-bar" class="bar-fill cyan"></div></div><span class="bar-val" id="ui-shield-txt">100%</span></div>
             </div>
-            
             <div class="divider"></div>
-            
-            <h4 class="sub-head red-txt">HARDPOINTS</h4>
-            <div id="ui-wep-list" class="item-list"></div>
-            
-            <h4 class="sub-head cyan-txt">SYSTEMS</h4>
-            <div id="ui-sys-list" class="item-list"></div>
-            
-            <h4 class="sub-head blue-txt">CREW</h4>
-            <div id="ui-crew-list" class="item-list"></div>
-            
-            <h4 class="sub-head yellow-txt">CARGO</h4>
-            <div id="ui-cargo-list" class="item-list"></div>
+            <h4 class="sub-head red-txt">HARDPOINTS</h4><div id="ui-wep-list" class="item-list"></div>
+            <h4 class="sub-head cyan-txt">SYSTEMS</h4><div id="ui-sys-list" class="item-list"></div>
+            <h4 class="sub-head blue-txt">CREW</h4><div id="ui-crew-list" class="item-list"></div>
+            <h4 class="sub-head yellow-txt">CARGO</h4><div id="ui-cargo-list" class="item-list"></div>
         </aside>
 
         <section class="center-console">
             <div class="viewport-container">
                 <div class="sector-info-panel">
-                    <div class="sector-details">
-                        <div class="sector-label">LOCATION</div>
-                        <div class="sector-name" id="ui-location">UNKNOWN</div>
-                    </div>
+                    <div class="sector-details"><div class="sector-label">LOCATION</div><div class="sector-name" id="ui-location">UNKNOWN</div></div>
                     <div class="map-toggles" id="view-toggles"></div>
                 </div>
                 
                 <div id="map-display" class="map-canvas"></div>
 
                 <div id="market-display" class="map-canvas surface-mode hidden">
-                    <div class="market-top">
-                        <h2 class="view-title">MARKET</h2>
-                        <button onclick="closeMarket()" class="close-view-btn">CLOSE</button>
-                    </div>
-                    <div class="table-container">
-                        <table class="data-table">
-                            <thead><tr><th>ITEM</th><th>TYPE</th><th>QTY</th><th>PRICE</th><th>ACT</th></tr></thead>
-                            <tbody id="market-list"></tbody>
-                        </table>
-                    </div>
+                    <div class="market-top"><h2 class="view-title">MARKET</h2><button onclick="closeMarket()" class="close-view-btn">CLOSE</button></div>
+                    <div class="table-container"><table class="data-table"><thead><tr><th>ITEM</th><th>TYPE</th><th>QTY</th><th>PRICE</th><th>ACT</th></tr></thead><tbody id="market-list"></tbody></table></div>
                 </div>
 
                 <div id="shipyard-display" class="map-canvas surface-mode hidden">
-                    <div class="market-top">
-                        <h2 class="view-title">SHIPYARD</h2>
-                        <button onclick="closeMarket()" class="close-view-btn">CLOSE</button>
-                    </div>
-                    <div class="table-container">
-                        <table class="data-table">
-                            <thead><tr><th>PART</th><th>TYPE</th><th>PRICE</th><th>ACT</th></tr></thead>
-                            <tbody id="shipyard-list"></tbody>
-                        </table>
-                    </div>
+                    <div class="market-top"><h2 class="view-title">SHIPYARD</h2><button onclick="closeMarket()" class="close-view-btn">CLOSE</button></div>
+                    <div class="table-container"><table class="data-table"><thead><tr><th>PART</th><th>TYPE</th><th>PRICE</th><th>ACT</th></tr></thead><tbody id="shipyard-list"></tbody></table></div>
                 </div>
                 
                 <div id="lounge-display" class="map-canvas surface-mode hidden">
-                     <div class="market-top">
-                        <h2 class="view-title">LOUNGE</h2>
-                        <button onclick="closeMarket()" class="close-view-btn">LEAVE</button>
-                     </div>
-                     <div class="lounge-grid">
-                        <div id="recruit-list"></div>
-                        <div id="rumor-list"></div>
-                     </div>
+                    <div class="market-top"><h2 class="view-title">LOUNGE</h2><button onclick="closeMarket()" class="close-view-btn">LEAVE</button></div>
+                    <div class="lounge-grid"><div id="recruit-list"></div><div id="rumor-list"></div></div>
                 </div>
             </div>
 
             <div class="tactical-panel">
                 <div class="tac-grid">
-                    <div class="tac-col">
-                        <button onclick="setMapMode('galaxy')" class="tac-btn">GALAXY</button>
-                        <button onclick="setMapMode('sector')" class="tac-btn">SECTOR</button>
-                    </div>
-                    <div class="tac-col">
-                        <button onclick="sendCmd('Takeoff')" class="tac-btn yellow">TAKEOFF</button>
-                        <button onclick="sendCmd('Land')" class="tac-btn">LAND</button>
-                    </div>
-                    <div class="tac-col">
-                        <button onclick="sendCmd('Shields UP')" class="tac-btn red">SHIELD</button>
-                        <button onclick="sendCmd('Fire')" class="tac-btn red">FIRE</button>
-                    </div>
-                </div>
-                <div class="cmd-line">
-                    <input type="text" id="player-input" placeholder="Manual Override..." autocomplete="off">
-                    <button id="btn-engage">EXECUTE</button>
+                    <div class="tac-col"><button onclick="setMapMode('galaxy')" class="tac-btn">GALAXY</button><button onclick="setMapMode('sector')" class="tac-btn">SECTOR</button></div>
+                    <div class="tac-col"><button onclick="sendCmd('Takeoff')" class="tac-btn yellow">TAKEOFF</button><button onclick="sendCmd('Land')" class="tac-btn">LAND</button></div>
+                    <div class="tac-col"><button onclick="sendCmd('Shields UP')" class="tac-btn red">SHIELD</button><button onclick="sendCmd('Fire')" class="tac-btn red">FIRE</button></div>
                 </div>
             </div>
         </section>
 
         <aside class="sidebar right-panel">
-            <div class="ship-header-info">
-                <div class="ship-class-title" id="ui-ship-class">CUTTER</div>
-                <div class="ship-stats-row">
-                    <span>SLOTS: <span id="ui-slot-count">0/0</span></span>
-                </div>
-            </div>
-            <div class="panel-tabs">
-                <button onclick="switchRightTab('ship')" class="p-tab active" id="tab-ship">BLUEPRINT</button>
-                <button onclick="switchRightTab('log')" class="p-tab" id="tab-log">LOG</button>
-            </div>
+            <div class="ship-header-info"><div class="ship-class-title" id="ui-ship-class">CUTTER</div><div class="ship-stats-row"><span>SLOTS: <span id="ui-slot-count">0/0</span></span></div></div>
+            <div class="panel-tabs"><button onclick="switchRightTab('ship')" class="p-tab active" id="tab-ship">BLUEPRINT</button><button onclick="switchRightTab('log')" class="p-tab" id="tab-log">LOG</button></div>
             <div id="panel-content" class="panel-scroll"></div>
         </aside>
     </main>
