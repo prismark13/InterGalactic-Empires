@@ -1,0 +1,23 @@
+# Environment variables and secrets
+.env
+.env.local
+.env.*.local
+
+# Node modules
+node_modules/
+package-lock.json
+
+# OS and editor files
+.DS_Store
+.vscode/
+*.swp
+*.swo
+*~
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Runtime data
+game_state.json

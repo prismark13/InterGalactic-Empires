@@ -1,4 +1,3 @@
-// systems/core.js
 const DATA = require('../data/constants');
 
 class GameCore {
@@ -23,7 +22,7 @@ class GameCore {
 
     // --- GENERATORS ---
     generateSectorBodies(sysName) {
-        if (sysName === "Veridia Prime") return DATA.STARTER_PLANETS;
+        if (sysName.includes("Veridia")) return DATA.STARTER_PLANETS;
         
         const starType = DATA.STAR_TYPES[this.rng(0, DATA.STAR_TYPES.length-1)];
         let bodies = [{ name: sysName, type: starType, is_star: true, desc: "System Star." }];
@@ -73,16 +72,12 @@ class GameCore {
         let lounge = { recruits: [], rumors: ["The void is quiet.", "Pirates in Sector 7."] };
         for(let i=0; i<3; i++) {
             const role = DATA.ROLES[this.rng(0, DATA.ROLES.length-1)];
-            // Fallback check if name list exists
             let nameList = DATA.NAMES.Spacer;
-            if(DATA.NAMES.Spacer) {
+            if (DATA.NAMES.Spacer) {
                 if(role==="Scientist") nameList = DATA.NAMES.HighBorn;
-                else if(role==="Marine") nameList = [...DATA.NAMES.Spacer, ...DATA.NAMES.Alien];
-                else if(role==="Engineer") nameList = [...DATA.NAMES.Spacer, ...DATA.NAMES.Synthetic];
-            } else {
-                nameList = ["Rookie"];
+                if(role==="Marine") nameList = [...DATA.NAMES.Spacer, ...DATA.NAMES.Alien];
+                if(role==="Engineer") nameList = [...DATA.NAMES.Spacer, ...DATA.NAMES.Synthetic];
             }
-
             const name = nameList[this.rng(0, nameList.length-1)];
             lounge.recruits.push({ name: name, role: role, cost: this.rng(100, 600), desc: "Ready for hire." });
         }
@@ -96,21 +91,17 @@ class GameCore {
         return { type: "Asteroid", text: "Dense debris field.", hostile: false, mineable: true };
     }
 
-    // --- ACTIONS ---
     mineAction() {
         const roll = Math.random();
         let lootList = DATA.MINERALS.Tier1;
         if(roll > 0.95) lootList = DATA.MINERALS.Tier4;
         else if(roll > 0.85) lootList = DATA.MINERALS.Tier3;
         else if(roll > 0.60) lootList = DATA.MINERALS.Tier2;
-
         const ore = lootList[this.rng(0, lootList.length-1)];
         const qty = this.rng(1, 4);
-        
         const existing = this.state.ship.cargo.find(c => c.name === ore);
         if(existing) existing.qty += qty;
-        else this.state.ship.cargo.push({ name: ore, qty: qty, val: this.rng(20, 500), weight: 1, type: "Material" });
-        
+        else this.state.ship.cargo.push({ name: ore, qty: qty, val: this.rng(20, 200), weight: 1, type: "Material" });
         this.log(`Mining Yield: ${qty}x ${ore}`, "system");
         this.syncShipStats();
     }

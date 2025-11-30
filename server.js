@@ -1,4 +1,4 @@
-// server.js - V11.3 Async Fix
+// server.js - V11.4 Final Stable
 require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
@@ -8,24 +8,48 @@ const GameCore = require('./systems/core');
 const DATA = require('./data/constants');
 
 const app = express();
-const PORT = 3000;
-const API_KEY = process.env.GEMINI_API_KEY;
-const MODEL_NAME = "gemini-2.0-flash"; 
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
-if (!API_KEY) { console.error("CRITICAL: Missing .env API Key"); process.exit(1); }
+// Accept multiple env var names to be flexible for local setups
+const API_KEY = (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || process.env.API_KEY || process.env.GEN_AI_KEY || '').trim();
+const MODEL_NAME = process.env.MODEL_NAME || process.env.MODEL || 'gemini-2.0-flash';
 
-const { GoogleGenerativeAI } = require("@google/generative-ai");
-const genAI = new GoogleGenerativeAI(API_KEY);
-const model = genAI.getGenerativeModel({ model: MODEL_NAME });
+let genAI = null;
+let model = null;
+
+function initAI() {
+    if (!API_KEY) {
+        console.warn('No API key found (GEMINI_API_KEY/GOOGLE_API_KEY/API_KEY/GEN_AI_KEY). Running without AI (dev mode).');
+        return;
+    }
+    if (API_KEY.startsWith('AIza')) {
+        console.warn('API key looks like a legacy REST API key (starts with "AIza"). It may not be compatible with the Generative AI client.');
+    }
+    try {
+        const { GoogleGenerativeAI } = require('@google/generative-ai');
+        genAI = new GoogleGenerativeAI(API_KEY);
+        try {
+            model = genAI.getGenerativeModel({ model: MODEL_NAME });
+            console.log(`AI model initialized: ${MODEL_NAME}`);
+        } catch (e) {
+            console.warn('Failed to select model:', MODEL_NAME, e && e.message ? e.message : e);
+            model = null;
+        }
+    } catch (e) {
+        console.warn('Failed to initialize GoogleGenerativeAI client, continuing without AI.', e && e.message ? e.message : e);
+        genAI = null; model = null;
+    }
+}
+
+initAI();
 
 app.use(cors());
 app.use(bodyParser.json());
-app.use(express.static('.')); 
+app.use(express.static('.'));
 
 let gameState;
 let core;
 
-// --- ROBUST LOADER ---
 function createFreshState() {
     return { 
         meta: { location: "Veridia Prime", date: "2400.01.01", landed: false, orbiting: "Veridia Prime" },
@@ -45,20 +69,21 @@ function createFreshState() {
         known_systems: { "Veridia Prime": DATA.STARTER_PLANETS }, 
         local_market: [], local_shipyard: [], local_lounge: { recruits: [], rumors: [] }, 
         encounter: null,
-        log: [{ type: "system", text: "System Online." }]
+        log: [{ type: "system", text: "System Initialized." }]
     };
 }
 
 function loadState() {
     try {
-        if (!fs.existsSync('game_state.json')) return createFreshState();
-        let s = JSON.parse(fs.readFileSync('game_state.json', 'utf8'));
-        // Integrity Check
-        if (!s.meta || !s.ship || !s.map) throw new Error("Corrupt");
+        if (!fs.existsSync('game_state.json')) throw new Error("No Save");
+        const s = JSON.parse(fs.readFileSync('game_state.json', 'utf8'));
+        if (!s.meta || !s.ship || !s.map || !s.meta.location || s.meta.location === "Unknown") {
+            throw new Error("Invalid Location Data");
+        }
         if (!s.local_lounge || Array.isArray(s.local_lounge)) s.local_lounge = { recruits: [], rumors: [] };
         return s;
     } catch (e) {
-        console.log("State Corrupt. Re-initializing...");
+        console.log("Save Invalid. Creating New Universe...");
         return createFreshState();
     }
 }
@@ -67,83 +92,111 @@ function loadState() {
 gameState = loadState();
 core = new GameCore(gameState);
 core.syncShipStats();
-// Force Map Data
 if(!gameState.known_systems[gameState.meta.location]) {
     gameState.known_systems[gameState.meta.location] = core.generateSectorBodies(gameState.meta.location);
 }
 gameState.map.sector_bodies = gameState.known_systems[gameState.meta.location];
 
-function save() { fs.writeFileSync('game_state.json', JSON.stringify(core.state, null, 2)); }
+function save() {
+    try {
+        const payload = (core && core.state) ? core.state : gameState;
+        fs.writeFileSync('game_state.json', JSON.stringify(payload, null, 2));
+    } catch (e) {
+        console.error('Failed to save game_state.json:', e && e.message ? e.message : e);
+    }
+}
 
-// --- API ROUTE (FIXED ASYNC) ---
-app.post('/command', async (req, res) => { // <--- FIXED HERE
-    const cmd = req.body.command;
+// simple health endpoint
+app.get('/ping', (req, res) => {
+    res.json({ ok: true, ai: !!model, model: model ? MODEL_NAME : null, location: (core && core.state && core.state.meta && core.state.meta.location) || null });
+});
 
-    if (cmd === "RESTART_GAME") {
+// Global error handlers to avoid silent exits during development
+process.on('unhandledRejection', (reason, p) => {
+    console.error('Unhandled Rejection at:', p, 'reason:', reason);
+});
+process.on('uncaughtException', (err) => {
+    console.error('Uncaught Exception thrown:', err);
+});
+
+// --- NEW GET /STATE ROUTE (For Frontend to safely retrieve current data) ---
+app.get('/state', (req, res) => {
+    res.json(core.state);
+});
+
+// --- API POST /COMMAND ---
+app.post('/command', async (req, res) => { // <-- ASYNC FUNCTION
+    const cmdRaw = req.body && req.body.command ? req.body.command : '';
+    console.log('Command received:', cmdRaw);
+    const cmd = (cmdRaw || '').toString();
+    const n = cmd.trim().toLowerCase();
+
+    // Helper to respond with current state
+    const respondState = () => { core.syncShipStats(); save(); return res.json(core.state); };
+
+    if (n === 'restart_game' || n === 'restart game') {
         if(fs.existsSync('game_state.json')) fs.unlinkSync('game_state.json');
-        gameState = createFreshState(); 
+        gameState = createFreshState();
         core = new GameCore(gameState);
         core.syncShipStats(); save(); 
         return res.json(core.state);
     }
 
-    // SCANNING
-    if (cmd === "Scan Sector") {
+    if (n === 'scan sector' || n === 'sector') {
         core.state.map.view_mode = "sector";
         const loc = core.state.meta.location;
         if(!core.state.known_systems[loc] || core.state.known_systems[loc].length === 0) {
             core.state.known_systems[loc] = core.generateSectorBodies(loc);
         }
         core.state.map.sector_bodies = core.state.known_systems[loc];
-        save(); return res.json(core.state);
+        return respondState();
     }
 
-    if (cmd === "Galaxy Map") {
+    if (n === 'galaxy map' || n === 'galaxy') {
         core.state.map.view_mode = "galaxy";
         if(!core.state.map.neighbors || core.state.map.neighbors.length < 3) {
             core.state.map.neighbors = ["Alpha Centauri", "Proxima", "Wolf 359", "Sirius"];
         }
-        save(); return res.json(core.state);
+        return respondState();
     }
 
-    // NAVIGATION
-    if (cmd.startsWith("Warp")) {
-        const target = cmd.replace("Warp to ", "");
+    if (n.startsWith('travel')) {
+        const target = cmd.replace(/travel to\s*/i, '');
+        core.travel(target);
+        return respondState();
+    }
+
+    if (n.startsWith('warp')) {
+        const target = cmd.replace(/warp to\s*/i, '');
         if(core.state.ship.stats.fuel_warp > 0) {
-            core.state.ship.stats.fuel_warp--;
-            core.state.meta.location = target;
-            core.state.meta.orbiting = "Deep Space";
-            core.state.meta.landed = false;
+            core.state.ship.stats.fuel_warp--; core.state.meta.location = target;
+            core.state.meta.orbiting = "Deep Space"; core.state.meta.landed = false;
             core.state.map.view_mode = "sector";
-            // Gen Destination
             if(!core.state.known_systems[target]) core.state.known_systems[target] = core.generateSectorBodies(target);
             core.state.map.sector_bodies = core.state.known_systems[target];
-            // Gen Neighbors
-            core.state.map.neighbors = ["Sector " + Math.floor(Math.random()*99), "Nebula", "Void"];
         } else core.log("Insufficient Warp Fuel.", "error");
-        save(); return res.json(core.state);
+        return respondState();
     }
 
-    if (cmd.startsWith("Travel")) { core.travel(cmd.replace("Travel to ", "")); save(); return res.json(core.state); }
-
-    // LANDING
-    if (cmd.startsWith("Land")) {
-        const target = cmd.replace("Land on ", "");
+    if (n.startsWith('land')) {
+        const target = cmd.replace(/land on\s*/i, '');
         if(core.state.meta.orbiting === target) {
             core.state.meta.landed = true;
             core.state.local_market = core.generateMarket();
             core.state.local_shipyard = core.generateShipyard();
             core.state.local_lounge = core.generateLounge();
         } else core.log("Not in orbit.");
-        save(); return res.json(core.state);
+        return respondState();
     }
-    if (cmd.startsWith("Takeoff")) { core.state.meta.landed = false; save(); return res.json(core.state); }
 
-    // COMMERCE
-    if (cmd.startsWith("Buy ")) {
+    if (n.startsWith('takeoff')) { core.state.meta.landed = false; return respondState(); }
+    if (n.startsWith('mine')) { core.mineAction(); return respondState(); }
+
+    // Commerce Logic
+    if (n.startsWith('buy ')) {
         const parts = cmd.split(" ");
-        if(parts[1]==="Part") {
-            const name = cmd.replace("Buy Part ", "");
+        if(parts[1] && parts[1].toLowerCase() === 'part') {
+            const name = cmd.replace(/buy part\s*/i, '');
             const part = core.state.local_shipyard.find(p=>p.name===name);
             if(part && core.state.player.units>=part.price) {
                 core.state.player.units-=part.price;
@@ -162,75 +215,31 @@ app.post('/command', async (req, res) => { // <--- FIXED HERE
                 if(name.includes("Hyper-Crystals")) core.state.ship.stats.fuel_warp+=qty;
             }
         }
-    // AI FALLBACK
-    if (!handled) {
-        try {
-            // Combine LORE + STATE + COMMAND
-            const prompt = `
-            ${LORE}
-            
-            CURRENT GAME STATE: ${JSON.stringify(core.state)}
-            
-            PLAYER COMMAND: "${cmd}"
-            
-            RESPONSE (Keep it brief, under 2 sentences, flavorful):
-            `;
-            
-            const result = await model.generateContent(prompt);
-            const text = result.response.text().replace(/```json/g, '').replace(/```/g, '');
-            
-            // You can push this text to the log
-            core.state.log.push({ type: "gm", text: text });
-            
-        } catch (e) {
-            console.error("AI Error", e);
-        }
-    }
+        return respondState();
     }
 
-    if (cmd.startsWith("Sell ")) {
-        const parts = cmd.split(" ");
-        const qty = parseInt(parts[1]);
-        const name = parts.slice(2).join(" ");
-        const idx = core.state.ship.cargo.findIndex(c => c.name === name);
-        if (idx > -1 && core.state.ship.cargo[idx].qty >= qty) {
-            core.state.player.units += Math.floor(core.state.ship.cargo[idx].val * 0.8 * qty);
-            core.state.ship.cargo[idx].qty -= qty;
-            if (core.state.ship.cargo[idx].qty <= 0) core.state.ship.cargo.splice(idx, 1);
-        }
-    }
-
-    if (cmd.startsWith("Recruit ")) {
-        const name = cmd.replace("Recruit ", "");
+    if (n.startsWith('recruit ')) {
+        const name = cmd.replace(/recruit\s*/i, '');
         const r = core.state.local_lounge.recruits.find(r => r.name === name);
         if(r && core.state.player.units >= r.cost) {
             core.state.player.units -= r.cost;
             core.state.ship.crew.push(r);
             core.state.local_lounge.recruits = core.state.local_lounge.recruits.filter(c => c !== r);
         }
+        return respondState();
     }
 
-    // ENCOUNTERS & ACTIONS
+    // Encounter Actions
     if (core.state.encounter) {
-        if (cmd === "Attack") core.resolveCombat();
-        else if (cmd === "Ignore" || cmd === "Flee") core.state.encounter = null;
-        else if (cmd === "Mine Asteroid") { core.mineAction(); core.state.encounter = null; }
+        if (n === 'attack') core.resolveCombat();
+        else if (n === 'ignore' || n === 'flee') core.state.encounter = null;
+        else if (n === 'mine asteroid') { core.mineAction(); core.state.encounter = null; }
+        return respondState();
     }
 
-    if (cmd.startsWith("Mine ")) { core.mineAction(); save(); return res.json(core.state); }
-
-    // AI FALLBACK
-    if(!["Buy","Sell","Travel","Warp","Land","Takeoff","Scan","Mine","Recruit","Attack","Ignore","Flee"].some(k=>cmd.startsWith(k))) {
-         try {
-            const prompt = `Context: GM. State: ${JSON.stringify(core.state)} | Cmd: "${cmd}"`;
-            const result = await model.generateContent(prompt);
-            core.log("Command processed.", "gm");
-        } catch (e) {}
-    }
-
-    core.syncShipStats();
-    save(); 
-    res.json(core.state);
+    // Default: unknown command
+    core.log(`Unknown command: ${cmd}`, 'system');
+    return respondState();
 });
 
 app.listen(PORT, () => console.log(`SYSTEM ONLINE: http://localhost:${PORT}`));
