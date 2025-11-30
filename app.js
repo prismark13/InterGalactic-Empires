@@ -1,7 +1,7 @@
-// app.js - Final Master Version (V10.2)
+// app.js - Final Master Version (V11.0)
 
 const els = {
-    // Stats & Header
+    // Header Stats
     units: document.getElementById('ui-units'), 
     fuelIon: document.getElementById('ui-fuel-ion'), 
     fuelWarp: document.getElementById('ui-fuel-warp'), 
@@ -11,36 +11,35 @@ const els = {
     hullTxt: document.getElementById('ui-hull-txt'), 
     shieldTxt: document.getElementById('ui-shield-txt'),
 
-    // Left Panel Lists
+    // Left Panel Lists (Manifest)
     wepList: document.getElementById('ui-wep-list'), 
     sysList: document.getElementById('ui-sys-list'), 
     crewList: document.getElementById('ui-crew-list'), 
     cargoList: document.getElementById('ui-cargo-list'),
 
-    // Center Views
+    // Center Console Views
     mapDisplay: document.getElementById('map-display'), 
     marketDisplay: document.getElementById('market-display'), 
     shipyardDisplay: document.getElementById('shipyard-display'), 
     loungeDisplay: document.getElementById('lounge-display'),
     viewToggles: document.getElementById('view-toggles'),
 
-    // Inner Content Lists
+    // Inner Content Containers
     marketList: document.getElementById('market-list'), 
     shipyardList: document.getElementById('shipyard-list'), 
     recruitList: document.getElementById('recruit-list'), 
     rumorList: document.getElementById('rumor-list'),
 
-    // Right Panel
+    // Right Panel (Ship)
     rightPanel: document.getElementById('panel-content'), 
     shipClass: document.getElementById('ui-ship-class'), 
     slotCount: document.getElementById('ui-slot-count'),
 
-    // Modals
+    // Modals & Overlays
     modal: document.getElementById('modal-overlay'), 
     mTitle: document.getElementById('m-title'), 
     mBody: document.getElementById('m-body'), 
     mFooter: document.getElementById('m-footer'),
-
     encModal: document.getElementById('encounter-overlay'), 
     encTitle: document.getElementById('enc-title'), 
     encText: document.getElementById('enc-text'), 
@@ -69,7 +68,7 @@ function getVisualClass(type) {
     if (t.includes("belt") || t.includes("asteroid") || t.includes("debris")) return "planet-belt";
     if (t.includes("moon") || t.includes("dwarf")) return "planet-moon";
     
-    return "planet-terran";
+    return "planet-terran"; // Default
 }
 
 function getStarVisual(type) {
@@ -78,7 +77,7 @@ function getStarVisual(type) {
     if (t.includes("blue") || t.includes("o-type") || t.includes("b-type")) return "star-blue";
     if (t.includes("red") || t.includes("m-type") || t.includes("carbon")) return "star-red";
     if (t.includes("yellow") || t.includes("g-type")) return "star-yellow";
-    if (t.includes("pulsar") || t.includes("neutron")) return "star-pulsar";
+    if (t.includes("pulsar") || t.includes("neutron") || t.includes("magnetar")) return "star-pulsar";
     if (t.includes("black")) return "star-blackhole";
     return "star-white";
 }
@@ -95,15 +94,16 @@ function render(data) {
     currentData = data;
     
     // 1. Stats
-    els.units.innerText = data.player.units + " U";
-    els.fuelIon.innerText = data.ship.stats.fuel_ion; 
-    els.fuelWarp.innerText = data.ship.stats.fuel_warp;
-    els.loc.innerText = data.meta.landed ? "SURFACE" : `ORBIT: ${data.meta.orbiting}`;
+    if(els.units) els.units.innerText = data.player.units + " U";
+    if(els.fuelIon) els.fuelIon.innerText = data.ship.stats.fuel_ion; 
+    if(els.fuelWarp) els.fuelWarp.innerText = data.ship.stats.fuel_warp;
+    if(els.loc) els.loc.innerText = data.meta.landed ? "SURFACE" : `ORBIT: ${data.meta.orbiting}`;
     
-    els.hullBar.style.width = data.ship.stats.hull + "%"; 
-    els.hullTxt.innerText = data.ship.stats.hull + "%";
-    els.shieldBar.style.width = data.ship.stats.shields + "%"; 
-    els.shieldTxt.innerText = data.ship.stats.shields + "%";
+    // Status Bars
+    if(els.hullBar) els.hullBar.style.width = data.ship.stats.hull + "%"; 
+    if(els.hullTxt) els.hullTxt.innerText = data.ship.stats.hull + "%";
+    if(els.shieldBar) els.shieldBar.style.width = data.ship.stats.shields + "%"; 
+    if(els.shieldTxt) els.shieldTxt.innerText = data.ship.stats.shields + "%";
 
     // 2. Left Panel Lists
     populateList(els.wepList, data.ship.weapons, 'red');
@@ -112,18 +112,18 @@ function render(data) {
     populateList(els.cargoList, data.ship.cargo, 'yellow', true);
 
     // 3. Right Header
-    els.shipClass.innerText = data.ship.class.toUpperCase();
-    els.slotCount.innerText = `${data.ship.stats.slots_used}/${data.ship.stats.slots_max}`;
+    if(els.shipClass) els.shipClass.innerText = data.ship.class.toUpperCase();
+    if(els.slotCount) els.slotCount.innerText = `${data.ship.stats.slots_used}/${data.ship.stats.slots_max}`;
 
     // 4. Encounter Modal
     if (data.encounter) {
         els.encModal.classList.remove('hidden');
-        els.encTitle.innerText = data.encounter.type;
+        els.encTitle.innerText = data.encounter.type.toUpperCase();
         els.encText.innerText = data.encounter.text;
         
         let btns = '';
         if (data.encounter.hostile) {
-            btns = `<button onclick="sendCmd('Attack')" class="action-btn">ATTACK</button><button onclick="sendCmd('Flee')" class="action-btn">FLEE</button>`;
+            btns = `<button onclick="sendCmd('Attack')" class="action-btn red">ATTACK</button><button onclick="sendCmd('Flee')" class="action-btn">FLEE</button>`;
         } else if (data.encounter.mineable) {
             btns = `<button onclick="sendCmd('Mine Asteroid')" class="action-btn">MINE</button><button onclick="sendCmd('Ignore')" class="action-btn">IGNORE</button>`;
         } else {
@@ -131,24 +131,24 @@ function render(data) {
         }
         els.encActions.innerHTML = btns;
     } else {
-        els.encModal.classList.add('hidden');
+        if(els.encModal) els.encModal.classList.add('hidden');
     }
 
     updateCenterView();
     renderRightPanel();
 }
 
-// --- LIST POPULATOR ---
+// --- 5. COMPONENT POPULATOR ---
 function populateList(container, items, color, isCargo=false) {
+    if(!container) return;
     container.innerHTML = '';
     if (!items || items.length === 0) { 
         container.innerHTML = '<div class="empty">- Empty -</div>'; 
         return; 
     }
     items.forEach(item => {
-        // Fix Legacy Names
         let name = item.name;
-        if(name === "Standard Tank") name = "Standard Fuel Tank";
+        if(name === "Standard Tank") name = "Standard Fuel Tank"; 
 
         const div = document.createElement('div'); 
         div.className = `manifest-item ${color}-border`;
@@ -163,16 +163,14 @@ function populateList(container, items, color, isCargo=false) {
     });
 }
 
-// --- CENTER VIEW MANAGER ---
+// --- 6. CENTER VIEW MANAGER ---
 function updateCenterView() {
-    // Hide all views first
     els.mapDisplay.classList.add('hidden'); 
     els.marketDisplay.classList.add('hidden'); 
     els.shipyardDisplay.classList.add('hidden'); 
     els.loungeDisplay.classList.add('hidden');
 
     if (currentData.meta.landed) {
-        // LANDED STATE
         els.viewToggles.innerHTML = `
             <button onclick="showMarket('goods')" class="view-btn" id="btn-mkt">MARKET</button>
             <button onclick="showMarket('ships')" class="view-btn" id="btn-shp">SHIPYARD</button>
@@ -180,13 +178,11 @@ function updateCenterView() {
             <button onclick="sendCmd('Takeoff')" class="view-btn warning">TAKEOFF</button>
         `;
         
-        // Check active view logic
         if (els.shipyardDisplay.classList.contains('active-view')) showMarket('ships');
         else if (els.loungeDisplay.classList.contains('active-view')) showMarket('lounge');
-        else showMarket('goods'); // Default
+        else showMarket('goods'); 
 
     } else {
-        // SPACE STATE
         els.mapDisplay.classList.remove('hidden');
         els.viewToggles.innerHTML = `
             <button onclick="setMapMode('galaxy')" class="view-btn ${currentData.map.view_mode==='galaxy'?'active':''}">GALAXY</button>
@@ -196,17 +192,12 @@ function updateCenterView() {
     }
 }
 
+// View Switcher
 window.showMarket = (type) => {
-    // Reset Classes
-    els.marketDisplay.classList.remove('active-view');
-    els.shipyardDisplay.classList.remove('active-view');
-    els.loungeDisplay.classList.remove('active-view');
+    els.marketDisplay.classList.add('hidden'); els.marketDisplay.classList.remove('active-view');
+    els.shipyardDisplay.classList.add('hidden'); els.shipyardDisplay.classList.remove('active-view');
+    els.loungeDisplay.classList.add('hidden'); els.loungeDisplay.classList.remove('active-view');
     
-    els.marketDisplay.classList.add('hidden');
-    els.shipyardDisplay.classList.add('hidden');
-    els.loungeDisplay.classList.add('hidden');
-
-    // Button States
     if(document.getElementById('btn-mkt')) {
         document.getElementById('btn-mkt').classList.toggle('active', type==='goods');
         document.getElementById('btn-shp').classList.toggle('active', type==='ships');
@@ -231,10 +222,12 @@ window.showMarket = (type) => {
 }
 window.closeMarket = () => sendCmd('Takeoff');
 
-// --- SUB-RENDERERS ---
+// --- 7. SUB-RENDERERS ---
 window.renderCommodities = (mode) => {
     marketMode = mode;
-    const list = els.marketList; list.innerHTML = '';
+    const list = els.marketList; 
+    if(!list) return; list.innerHTML = '';
+    
     const items = mode==='buy' ? (currentData.local_market||[]) : (currentData.ship.cargo||[]);
     
     if(items.length===0) { list.innerHTML=`<tr><td colspan="5" class="empty">NO ITEMS</td></tr>`; return; }
@@ -269,7 +262,7 @@ window.tradeItem = (name, id) => {
 }
 
 function renderShipyard() {
-    const list = els.shipyardList; list.innerHTML = '';
+    const list = els.shipyardList; if(!list) return; list.innerHTML = '';
     (currentData.local_shipyard||[]).forEach(p => {
         const row = document.createElement('tr');
         const can = currentData.player.units >= p.price;
@@ -285,8 +278,11 @@ function renderShipyard() {
 }
 
 function renderLounge() {
+    if(!els.recruitList) return;
     els.recruitList.innerHTML = ''; els.rumorList.innerHTML = '';
-    (currentData.local_lounge.recruits||[]).forEach(r => {
+    const lounge = currentData.local_lounge || { recruits: [], rumors: [] };
+    
+    (lounge.recruits||[]).forEach(r => {
         const can = currentData.player.units >= r.cost;
         els.recruitList.innerHTML += `
             <div class="recruit-card">
@@ -298,21 +294,22 @@ function renderLounge() {
                 </div>
             </div>`;
     });
-    (currentData.local_lounge.rumors||[]).forEach(r => els.rumorList.innerHTML += `<div class="rumor-bubble">"${r}"</div>`);
+    (lounge.rumors||[]).forEach(r => els.rumorList.innerHTML += `<div class="rumor-bubble">"${r}"</div>`);
 }
 
-// --- MAP RENDERER ---
+// --- 8. MAP RENDERER ---
 function renderMap() {
-    const display = els.mapDisplay; display.innerHTML = '';
-    const mode = currentData.map.view_mode || 'sector';
+    const display = els.mapDisplay; 
+    if(!display) return; display.innerHTML = '';
     
+    const mode = currentData.map.view_mode || 'sector';
     const rect = display.getBoundingClientRect();
     const cx = rect.width / 2; 
     const cy = rect.height / 2;
 
     if (mode === 'galaxy') {
         // GALAXY
-        let hub=document.createElement('div'); hub.className="map-node center-hub"; 
+        let hub = document.createElement('div'); hub.className="map-node center-hub"; 
         hub.style.left=`${cx}px`; hub.style.top=`${cy}px`; display.appendChild(hub);
         
         const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg"); 
@@ -321,7 +318,7 @@ function renderMap() {
         
         (currentData.map.neighbors||[]).forEach((star,i)=>{
             const seed = stringHash(star);
-            const dist = 120 + (seed * 50); 
+            const dist = 120 + (seed * 80); 
             const ang = (i/3) * 6.28 + seed;
             const x = cx + dist * Math.cos(ang); 
             const y = cy + dist * Math.sin(ang);
@@ -340,23 +337,22 @@ function renderMap() {
         const bodies = currentData.map.sector_bodies || [];
         if (bodies.length === 0) { display.innerHTML = '<div class="empty" style="padding-top:100px">NO SCAN DATA</div>'; return; }
 
-        // Star Logic
+        // Star
         const star = bodies.find(b=>b.is_star) || {type:"G-Type", name:"Unknown Star"};
         let sun = document.createElement('div'); 
         sun.className = `central-sun ${getStarVisual(star.type)}`; 
         sun.style.left=`${cx}px`; sun.style.top=`${cy}px`; 
         display.appendChild(sun);
 
-        // Planet Logic
+        // Planets
         const planets = bodies.filter(b => !b.is_star);
         const maxRad = Math.min(cx, cy) - 60; 
         const step = maxRad / (planets.length + 1);
 
         planets.forEach((b, i) => {
             const r = step * (i + 1); 
-            const a = stringHash(b.name) * 6.28 + (i*0.5); // Offset angles
+            const a = stringHash(b.name) * 6.28 + (i*0.8);
             
-            // Ring
             let ring = document.createElement('div'); ring.className = "orbit-ring"; 
             ring.style.width = `${r*2}px`; ring.style.height = `${r*2}px`; 
             ring.style.left = `${cx-r}px`; ring.style.top = `${cy-r}px`; 
@@ -380,13 +376,15 @@ function renderMap() {
     }
 }
 
-// --- RIGHT PANEL (GRID) ---
+// --- 9. RIGHT PANEL (SHIP) ---
 function renderRightPanel() {
-    const container = els.rightPanel; container.innerHTML = '';
+    const container = els.rightPanel; 
+    if(!container) return; container.innerHTML = '';
+
     if (activeRightTab === 'ship') {
-        const ship = currentData.ship;
+        const ship = currentData.ship; 
         const max = ship.stats.slots_max || 32;
-        const hull = document.createElement('div'); hull.className='ship-hull';
+        const hull = document.createElement('div'); hull.className='ship-hull'; 
         const grid = document.createElement('div'); grid.className='slot-grid';
         
         const add = (arr, cls, tag) => arr.forEach(x => {
@@ -400,13 +398,11 @@ function renderRightPanel() {
         add(ship.weapons, 'weapon', 'WPN'); 
         add(ship.systems, 'system', 'SYS');
         
-        // Cargo Spread
         let flatCargo=[]; (ship.cargo||[]).forEach(c=>{ 
             for(let i=0; i<Math.ceil((c.qty * (c.weight||1)) / 20); i++) flatCargo.push(c); 
         });
         add(flatCargo, 'cargo', 'CGO');
 
-        // Empties
         for(let i=grid.children.length; i<max; i++) { 
             const s=document.createElement('div'); s.className='slot empty'; grid.appendChild(s); 
         }
@@ -422,7 +418,7 @@ function renderRightPanel() {
     }
 }
 
-// --- MODALS & CONTROLS ---
+// --- 10. SYSTEM UTILS ---
 window.openDetailModal = (t, d) => {
     els.mTitle.innerText = d.name;
     
