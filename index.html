@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>INTERGALACTICA // COMMAND</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -26,6 +27,7 @@
 
     <header class="top-deck">
         <div class="header-left">
+            <div class="stat-group">LOCATION <span id="ui-location" class="val">UNKNOWN</span></div>
             <div class="stat-group">CREDITS <span id="ui-units" class="val">0</span></div>
             <div class="stat-group">ION FUEL <span id="ui-fuel-ion" class="val blue-txt">0</span></div>
             <div class="stat-group">WARP FUEL <span id="ui-fuel-warp" class="val purple-txt">0</span></div>
@@ -50,7 +52,7 @@
         <section class="center-console">
             <div class="viewport-container">
                 <div class="sector-info-panel">
-                    <div class="sector-details"><div class="sector-label">LOCATION</div><div class="sector-name" id="ui-location">UNKNOWN</div></div>
+                    <div class="sector-details"><div class="sector-label">LOCATION</div><div class="sector-name" id="ui-location-display">UNKNOWN</div></div>
                     <div class="map-toggles" id="view-toggles"></div>
                 </div>
                 
@@ -87,6 +89,7 @@
             <div id="panel-content" class="panel-scroll"></div>
         </aside>
     </main>
+
     <script src="app.js"></script>
 </body>
 </html>

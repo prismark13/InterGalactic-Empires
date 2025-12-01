@@ -1,246 +1,350 @@
-// app.js - Final V11.3 (Frontend)
+console.log('✅ app.js loaded');
 
-const els = {
-    units: document.getElementById('ui-units'), fuelIon: document.getElementById('ui-fuel-ion'), fuelWarp: document.getElementById('ui-fuel-warp'), loc: document.getElementById('ui-location'),
-    hullBar: document.getElementById('ui-hull-bar'), shieldBar: document.getElementById('ui-shield-bar'), hullTxt: document.getElementById('ui-hull-txt'), shieldTxt: document.getElementById('ui-shield-txt'),
-    wepList: document.getElementById('ui-wep-list'), sysList: document.getElementById('ui-sys-list'), crewList: document.getElementById('ui-crew-list'), cargoList: document.getElementById('ui-cargo-list'),
-    marketList: document.getElementById('market-list'), shipyardList: document.getElementById('shipyard-list'), recruitList: document.getElementById('recruit-list'), rumorList: document.getElementById('rumor-list'),
-    mapDisplay: document.getElementById('map-display'), marketDisplay: document.getElementById('market-display'), shipyardDisplay: document.getElementById('shipyard-display'), loungeDisplay: document.getElementById('lounge-display'),
-    rightPanel: document.getElementById('panel-content'), viewToggles: document.getElementById('view-toggles'),
-    shipClass: document.getElementById('ui-ship-class'), slotCount: document.getElementById('ui-slot-count'),
-    modal: document.getElementById('modal-overlay'), mTitle: document.getElementById('m-title'), mBody: document.getElementById('m-body'), mFooter: document.getElementById('m-footer'),
-    encModal: document.getElementById('encounter-overlay'), encTitle: document.getElementById('enc-title'), encText: document.getElementById('enc-text'), encActions: document.getElementById('enc-actions'),
-    input: document.getElementById('player-input'), btn: document.getElementById('btn-engage')
+const GameState = {
+  data: null,
+  rightTab: 'ship',
+
+  async init() {
+    console.log('🚀 GameState.init()');
+    try {
+      this.data = await StateService.load();
+      console.log('✅ State loaded:', this.data?.meta?.orbiting);
+      UI.render(this.data);
+    } catch (err) {
+      console.error('❌ Init failed:', err.message);
+    }
+  },
+
+  async executeCommand(cmd) {
+    console.log(`📤 ${cmd}`);
+    try {
+      this.data = await CommandService.send(cmd);
+      console.log('✅ Response:', this.data?.meta?.orbiting);
+      UI.render(this.data);
+    } catch (err) {
+      console.error(`❌ ${cmd} failed:`, err.message);
+    }
+  },
+
+  setRightTab(tab) {
+    this.rightTab = tab;
+    UI.renderRightPanel(this.data, tab);
+  },
+
+  updateMapMode(mode) {
+    if (this.data?.map) {
+      this.data.map.view_mode = mode;
+      UI.render(this.data);
+    }
+  },
 };
 
-let currentData = null;
-let activeRightTab = 'ship';
-let marketMode = 'buy';
+const StateService = {
+  async load() {
+    const response = await fetch('/state');
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return await response.json();
+  },
+};
 
-function getVisualClass(type) {
-    if (!type) return 'planet-terran';
-    const t = type.toLowerCase();
-    if (t.includes("gas")) return "planet-gas"; if (t.includes("ice")) return "planet-ice"; if (t.includes("volcanic")) return "planet-volcanic";
-    if (t.includes("ocean")) return "planet-ocean"; if (t.includes("belt")) return "planet-belt"; if (t.includes("moon")) return "planet-moon";
-    return "planet-terran";
-}
-function getStarVisual(type) {
-    if (!type) return 'star-white';
-    const t = type.toLowerCase();
-    if (t.includes("blue")) return "star-blue"; if (t.includes("red")) return "star-red"; if (t.includes("yellow")) return "star-yellow";
-    if (t.includes("pulsar")) return "star-pulsar"; if (t.includes("black")) return "star-blackhole";
-    return "star-white";
-}
-function stringHash(str) { let hash=0; for(let i=0;i<str.length;i++) hash=str.charCodeAt(i)+((hash<<5)-hash); return Math.abs(Math.sin(hash)*10000)%1; }
+const CommandService = {
+  async send(cmd) {
+    const response = await fetch('/command', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ command: cmd }),
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return await response.json();
+  },
+};
 
-function render(data) {
-    if (!data) {
-        console.warn("No data to render");
-        return;
+const UI = {
+  $(id) {
+    const el = document.getElementById(id);
+    if (!el) console.warn(`⚠️ Missing: ${id}`);
+    return el;
+  },
+
+  render(data) {
+    if (!data) return;
+    console.log('🎨 Render');
+    this.renderHeader(data);
+    this.renderStats(data);
+    this.renderInventory(data);
+    this.renderMap(data);
+    this.renderRightPanel(data, GameState.rightTab);
+  },
+
+  renderHeader(data) {
+    const location = data?.meta?.orbiting || 'UNKNOWN';
+    const credits = data?.player?.units || 0;
+    const fuelIon = data?.ship?.stats?.fuel_ion || 0;
+    const fuelWarp = data?.ship?.stats?.fuel_warp || 0;
+
+    let el = this.$('ui-location');
+    if (el) el.textContent = location;
+
+    el = this.$('ui-location-display');
+    if (el) el.textContent = location;
+
+    el = this.$('ui-units');
+    if (el) el.textContent = credits;
+
+    el = this.$('ui-fuel-ion');
+    if (el) el.textContent = fuelIon;
+
+    el = this.$('ui-fuel-warp');
+    if (el) el.textContent = fuelWarp;
+
+    console.log(`📍 ${location}`);
+  },
+
+  renderStats(data) {
+    const hull = data?.ship?.stats?.hull || 0;
+    const shields = data?.ship?.stats?.shields || 0;
+    const shipClass = data?.ship?.class || 'UNKNOWN';
+    const slotUsed = data?.ship?.stats?.slots_used || 0;
+    const slotMax = data?.ship?.stats?.slots_max || 32;
+
+    let el = this.$('ui-hull-bar');
+    if (el) el.style.width = `${Math.max(0, Math.min(100, hull))}%`;
+
+    el = this.$('ui-hull-txt');
+    if (el) el.textContent = `${hull}%`;
+
+    el = this.$('ui-shield-bar');
+    if (el) el.style.width = `${Math.max(0, Math.min(100, shields))}%`;
+
+    el = this.$('ui-shield-txt');
+    if (el) el.textContent = `${shields}%`;
+
+    el = this.$('ui-ship-class');
+    if (el) el.textContent = shipClass;
+
+    el = this.$('ui-slot-count');
+    if (el) el.textContent = `${slotUsed}/${slotMax}`;
+  },
+
+  renderInventory(data) {
+    this.renderList('ui-wep-list', data?.ship?.weapons || [], (w) => w.name);
+    this.renderList('ui-sys-list', data?.ship?.systems || [], (s) => s.name);
+    this.renderList('ui-crew-list', data?.ship?.crew || [], (c) => `${c.name} (${c.role})`);
+    this.renderList('ui-cargo-list', data?.ship?.cargo || [], (item) => `${item.name} × ${item.qty}`);
+  },
+
+  renderList(id, items, format) {
+    const el = this.$(id);
+    if (!el) return;
+    el.innerHTML = '';
+    if (items.length === 0) {
+      el.innerHTML = '<div class="item gray">None</div>';
+      return;
     }
-    currentData = data;
-    
-    // Defensive null checks
-    try {
-        if(els.units && data.player) els.units.innerText = (data.player.units || 0) + " U";
-        if(els.fuelIon && data.ship && data.ship.stats) els.fuelIon.innerText = data.ship.stats.fuel_ion || 0;
-        if(els.loc && data.meta) els.loc.innerText = data.meta.landed ? "SURFACE" : `ORBIT: ${data.meta.orbiting || 'Unknown'}`;
-        
-        if(els.hullBar && data.ship && data.ship.stats) els.hullBar.style.width = (data.ship.stats.hull || 0) + "%";
-        if(els.hullTxt && data.ship && data.ship.stats) els.hullTxt.innerText = (data.ship.stats.hull || 0) + "%";
+    items.forEach((item) => {
+      const div = document.createElement('div');
+      div.className = 'item';
+      div.textContent = format(item);
+      el.appendChild(div);
+    });
+  },
 
-        if(data.ship) {
-            populateList(els.wepList, data.ship.weapons, 'red');
-            populateList(els.sysList, data.ship.systems, 'cyan');
-            populateList(els.crewList, data.ship.crew, 'blue');
-            populateList(els.cargoList, data.ship.cargo, 'yellow', true);
-            if(els.shipClass) els.shipClass.innerText = (data.ship.class || 'Unknown').toUpperCase();
-            if(els.slotCount && data.ship.stats) els.slotCount.innerText = `${data.ship.stats.slots_used || 0}/${data.ship.stats.slots_max || 32}`;
-        }
-
-        if (data.encounter) {
-            if(els.encModal) els.encModal.classList.remove('hidden');
-            if(els.encTitle) els.encTitle.innerText = data.encounter.type || "Encounter";
-            if(els.encText) els.encText.innerText = data.encounter.text || "Unknown";
-            if(els.encActions) els.encActions.innerHTML = data.encounter.hostile 
-                ? `<button onclick="sendCmd('Attack')" class="action-btn">ATTACK</button><button onclick="sendCmd('Flee')" class="action-btn">FLEE</button>`
-                : `<button onclick="sendCmd('Mine Asteroid')" class="action-btn">MINE</button><button onclick="sendCmd('Ignore')" class="action-btn">IGNORE</button>`;
-        } else {
-            if(els.encModal) els.encModal.classList.add('hidden');
-        }
-
-        updateCenterView();
-        renderRightPanel();
-    } catch (e) {
-        console.error("Render error:", e);
-        if(currentData && currentData.log) currentData.log.push({type: 'error', text: `Render error: ${e.message}`});
+  renderMap(data) {
+    const el = this.$('map-display');
+    if (!el) return;
+    if (data?.map?.view_mode === 'galaxy') {
+      this.renderGalaxyMap(el, data);
+    } else {
+      this.renderSectorMap(el, data);
     }
-}
+  },
 
-function populateList(container, items, color, isCargo=false) {
-    if (!container) return;
+  renderSectorMap(container, data) {
     container.innerHTML = '';
-    if (!items || items.length === 0) { container.innerHTML = '<div class="empty">- Empty -</div>'; return; }
-    items.forEach(item => {
-        const div = document.createElement('div'); div.className = `manifest-item ${color}-border`;
-        div.innerHTML = isCargo ? `<span>${item.name}</span> <span class="qty">x${item.qty}</span>` : `<span>${item.name}</span>`;
-        div.ondblclick = () => openDetailModal('item', item);
-        container.appendChild(div);
-    });
-}
+    const canvas = document.createElement('canvas');
+    canvas.width = container.clientWidth || 600;
+    canvas.height = container.clientHeight || 400;
+    canvas.style.background = '#000';
+    canvas.style.border = '1px solid #0f0';
+    container.appendChild(canvas);
 
-function updateCenterView() {
-    els.mapDisplay.classList.add('hidden'); els.marketDisplay.classList.add('hidden'); 
-    els.shipyardDisplay.classList.add('hidden'); els.loungeDisplay.classList.add('hidden');
+    const ctx = canvas.getContext('2d');
+    const bodies = data?.map?.sector_bodies || [];
 
-    if (currentData.meta.landed) {
-        els.viewToggles.innerHTML = `<button onclick="showMarket('goods')" class="view-btn">MARKET</button><button onclick="showMarket('ships')" class="view-btn">SHIPYARD</button><button onclick="showMarket('lounge')" class="view-btn">LOUNGE</button><button onclick="sendCmd('Takeoff')" class="view-btn warning">TAKEOFF</button>`;
-        if(els.shipyardDisplay.classList.contains('active-view')) showMarket('ships');
-        else if(els.loungeDisplay.classList.contains('active-view')) showMarket('lounge');
-        else showMarket('goods');
-    } else {
-        els.mapDisplay.classList.remove('hidden');
-        els.viewToggles.innerHTML = `<button onclick="setMapMode('galaxy')" class="view-btn">GALAXY</button><button onclick="setMapMode('sector')" class="view-btn">SECTOR</button>`;
-        requestAnimationFrame(renderMap);
+    console.log(`🗺️ ${bodies.length} bodies`);
+
+    if (!bodies.length) {
+      ctx.fillStyle = '#fff';
+      ctx.font = '14px monospace';
+      ctx.fillText('NO BODIES DETECTED', 50, 50);
+      return;
     }
-}
 
-window.showMarket = (type) => {
-    els.marketDisplay.classList.add('hidden'); els.shipyardDisplay.classList.add('hidden'); els.loungeDisplay.classList.add('hidden');
-    els.marketDisplay.classList.remove('active-view'); els.shipyardDisplay.classList.remove('active-view'); els.loungeDisplay.classList.remove('active-view');
+    let minX = Infinity, maxX = -Infinity;
+    let minY = Infinity, maxY = -Infinity;
 
-    if(type==='goods'){ els.marketDisplay.classList.remove('hidden'); els.marketDisplay.classList.add('active-view'); renderCommodities(); }
-    else if(type==='ships'){ els.shipyardDisplay.classList.remove('hidden'); els.shipyardDisplay.classList.add('active-view'); renderShipyard(); }
-    else { els.loungeDisplay.classList.remove('hidden'); els.loungeDisplay.classList.add('active-view'); renderLounge(); }
-}
-window.closeMarket = () => sendCmd('Takeoff');
-
-window.renderCommodities = (mode) => {
-    marketMode = mode;
-    const list = els.marketList; if(!list) return; list.innerHTML = '';
-    const items = mode==='buy' ? (currentData.local_market||[]) : (currentData.ship.cargo||[]);
-    if(items.length===0) { list.innerHTML=`<tr><td colspan="5" class="empty">NO ITEMS</td></tr>`; return; }
-    items.forEach((item, idx) => {
-        const row = document.createElement('tr'); const color = item.rarity?.color || '#fff';
-        const price = mode==='buy' ? item.price : Math.floor(item.val*0.8);
-        const can = mode==='buy' ? currentData.player.units >= price : true;
-        const btnClass = can ? 'buy-btn' : 'buy-btn disabled';
-        row.innerHTML = `<td style="color:${color};font-weight:bold">${item.name}</td><td>${item.type}</td><td>${item.qty}</td><td style="color:#eab308">${price} U</td><td class="buy-cell"><input type="range" min="1" max="${item.qty}" value="1" id="sl-${idx}" oninput="document.getElementById('v-${idx}').innerText=this.value"><span id="v-${idx}">1</span><button onclick="tradeItem('${item.name}','sl-${idx}')" class="${btnClass}">${mode.toUpperCase()}</button></td>`;
-        list.appendChild(row);
+    bodies.forEach((b) => {
+      minX = Math.min(minX, b.x ?? 0);
+      maxX = Math.max(maxX, b.x ?? 0);
+      minY = Math.min(minY, b.y ?? 0);
+      maxY = Math.max(maxY, b.y ?? 0);
     });
-}
-window.tradeItem = (name, id) => sendCmd(`${marketMode==='buy'?'Buy':'Sell'} ${document.getElementById(id).value} ${name}`);
 
-function renderShipyard() {
-    const list = els.shipyardList; if(!list) return; list.innerHTML = '';
-    (currentData.local_shipyard||[]).forEach(p => {
-        const row = document.createElement('tr');
-        const can = currentData.player.units >= p.price;
-        const btnClass = can ? 'buy-btn' : 'buy-btn disabled';
-        row.innerHTML = `<td style="color:#fff;font-weight:bold">${p.name}</td><td>${p.type}</td><td style="color:#eab308">${p.price} U</td><td><button onclick="sendCmd('Buy Part ${p.name}')" class="${btnClass}">INSTALL</button></td>`;
-        list.appendChild(row);
+    const padding = 50;
+    const width = maxX - minX || 1;
+    const height = maxY - minY || 1;
+    const scaleX = (canvas.width - 2 * padding) / width;
+    const scaleY = (canvas.height - 2 * padding) / height;
+    const scale = Math.min(scaleX, scaleY);
+
+    bodies.forEach((body) => {
+      const x = (body.x - minX) * scale + padding;
+      const y = (body.y - minY) * scale + padding;
+      const radius = body.type === 'Gas Giant' ? 8 : 6;
+      const color = body.type === 'Star' ? '#ffd700' : '#4488ff';
+
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#fff';
+      ctx.font = '11px monospace';
+      ctx.fillText(body.name, x + 10, y - 5);
+
+      ctx.fillStyle = '#aaa';
+      ctx.font = '9px monospace';
+      ctx.fillText(body.type, x + 10, y + 8);
     });
-}
 
-function renderLounge() {
-    if(!els.recruitList) return;
-    els.recruitList.innerHTML = ''; els.rumorList.innerHTML = '';
-    const lounge = currentData.local_lounge || { recruits: [], rumors: [] };
-    (lounge.recruits||[]).forEach(r => {
-        const can = currentData.player.units >= r.cost;
-        els.recruitList.innerHTML += `<div class="recruit-card"><div><strong>${r.name}</strong> <small>(${r.role})</small></div><div>${r.cost} U</div><button onclick="sendCmd('Recruit ${r.name}')" class="buy-btn ${can?'':'disabled'}">HIRE</button></div>`;
+    ctx.fillStyle = '#222';
+    ctx.fillRect(10, canvas.height - 30, 300, 25);
+    ctx.strokeStyle = '#0f0';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(10, canvas.height - 30, 300, 25);
+
+    ctx.fillStyle = '#0f0';
+    ctx.font = '10px monospace';
+    ctx.fillText(
+      `SECTOR: ${data?.map?.current_system || 'VERIDIA'} | BODIES: ${bodies.length}`,
+      15,
+      canvas.height - 12
+    );
+  },
+
+  renderGalaxyMap(container, data) {
+    container.innerHTML = '';
+    const canvas = document.createElement('canvas');
+    canvas.width = container.clientWidth || 600;
+    canvas.height = container.clientHeight || 400;
+    canvas.style.background = '#000';
+    canvas.style.border = '1px solid #0f0';
+    container.appendChild(canvas);
+
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#0f0';
+    ctx.font = '14px monospace';
+    ctx.fillText('GALAXY NAVIGATION', 50, 50);
+
+    ctx.font = '11px monospace';
+    ctx.fillText('NEIGHBORING SECTORS:', 50, 100);
+
+    const neighbors = data?.map?.neighbors || [];
+    neighbors.forEach((n, i) => {
+      ctx.fillText(`  • ${n}`, 70, 120 + i * 20);
     });
-    (lounge.rumors||[]).forEach(r => els.rumorList.innerHTML += `<div class="rumor-bubble">"${r}"</div>`);
-}
+  },
 
-function renderMap() {
-    const display = els.mapDisplay; if(!display) return; display.innerHTML = '';
-    const mode = currentData.map.view_mode || 'sector';
-    const cx = display.clientWidth/2; const cy = display.clientHeight/2;
+  renderRightPanel(data, tab) {
+    const panelContent = this.$('panel-content');
+    if (!panelContent) return;
 
-    if (mode === 'galaxy') {
-        let hub=document.createElement('div'); hub.className="central-sun"; hub.style.left=`${cx}px`; hub.style.top=`${cy}px`; display.appendChild(hub);
-        (currentData.map.neighbors||[]).forEach((star,i)=>{
-            const dist=150; const ang=(i/3)*6.28;
-            let n=document.createElement('div'); n.className="map-node star-node"; n.innerHTML=`<div class="node-label">${star}</div>`; n.style.left=`${cx+dist*Math.cos(ang)}px`; n.style.top=`${cy+dist*Math.sin(ang)}px`; n.onclick=()=>sendCmd(`Warp to ${star}`); display.appendChild(n);
-        });
-    } else {
-        let sun=document.createElement('div'); sun.className="central-sun"; sun.style.left=`${cx}px`; sun.style.top=`${cy}px`; display.appendChild(sun);
-        const bodies = currentData.map.sector_bodies || [];
-        const maxRad = Math.min(cx, cy) - 50; const step = maxRad/(bodies.length+1);
-        bodies.forEach((b,i)=>{
-            if(b.is_star) return;
-            const r=step*(i+1); const a=stringHash(b.name)*6.28;
-            let ring=document.createElement('div'); ring.className="orbit-ring"; ring.style.width=`${r*2}px`; ring.style.height=`${r*2}px`; ring.style.left=`${cx-r}px`; ring.style.top=`${cy-r}px`; display.appendChild(ring);
-            const x=cx+r*Math.cos(a); const y=cy+r*Math.sin(a);
-            let p=document.createElement('div'); p.className="orbital-planet";
-            let visual = getVisualClass(b.type);
-            p.innerHTML=`<div class="planet-icon ${visual}"></div><div class="orbital-label">${b.name}</div>`;
-            p.style.left=`${x}px`; p.style.top=`${y}px`; p.onclick=()=>openDetailModal('planet', b); display.appendChild(p);
-            if(currentData.meta.orbiting===b.name) { let s=document.createElement('div'); s.className="player-ship-icon"; s.innerHTML="▲"; s.style.left=`${x+15}px`; s.style.top=`${y-15}px`; display.appendChild(s); }
-        });
+    if (tab === 'ship') {
+      this.renderShipPanel(data, panelContent);
+    } else if (tab === 'log') {
+      this.renderLogPanel(data, panelContent);
     }
+  },
+
+  renderShipPanel(data, container) {
+    let html = '<div class="blueprint-section">';
+    const equipment = data?.ship?.equipment || [];
+
+    if (equipment.length > 0) {
+      html += '<h4 class="sub-head" style="margin-top: 10px;">EQUIPMENT</h4>';
+      equipment.forEach((e) => {
+        html += `<div class="item">${e.name} <span class="gray">(${e.type})</span></div>`;
+      });
+    } else {
+      html += '<div class="item gray">No equipment</div>';
+    }
+
+    html += '</div>';
+    container.innerHTML = html;
+  },
+
+  renderLogPanel(data, container) {
+    let html = '<div class="log-section">';
+    const log = data?.log || [];
+
+    if (log.length > 0) {
+      log.slice(-20).forEach((entry) => {
+        const typeClass = entry.type || 'info';
+        html += `<div class="log-entry log-${typeClass}">${entry.text}</div>`;
+      });
+    } else {
+      html += '<div class="log-entry log-system">No log entries</div>';
+    }
+
+    html += '</div>';
+    container.innerHTML = html;
+  },
+};
+
+function sendCmd(cmd) {
+  GameState.executeCommand(cmd);
 }
 
-function renderRightPanel() {
-    const container = els.rightPanel; if(!container) return; container.innerHTML = '';
-    if (activeRightTab === 'ship') {
-        const ship = currentData.ship; const max = ship.stats.slots_max || 32;
-        const hull = document.createElement('div'); hull.className='ship-hull'; const grid = document.createElement('div'); grid.className='slot-grid';
-        const add = (arr, cls, tag) => arr.forEach(x => { const s=document.createElement('div'); s.className=`slot filled ${cls}`; s.innerHTML=`<span class="slot-tag">${tag}</span>`; s.title=x.name; s.ondblclick = () => openDetailModal('item', x); grid.appendChild(s); });
-        add(ship.crew||[], 'crew', 'CRW'); add(ship.weapons||[], 'weapon', 'WPN'); add(ship.systems||[], 'system', 'SYS');
-        let flatCargo=[]; (ship.cargo||[]).forEach(c=>{ for(let i=0; i<Math.ceil(c.qty/20); i++) flatCargo.push(c); }); add(flatCargo, 'cargo', 'CGO');
-        for(let i=grid.children.length; i<max; i++) { const s=document.createElement('div'); s.className='slot empty'; grid.appendChild(s); }
-        const scroll = document.createElement('div'); scroll.className='slot-grid-container'; scroll.appendChild(grid); hull.appendChild(scroll); container.appendChild(hull);
-    } else { (currentData.log||[]).forEach(l=>{ let d=document.createElement('div'); d.className=`log-entry ${l.type}`; d.innerText=l.text; container.appendChild(d); }); }
+function setMapMode(mode) {
+  console.log(`🗺️ ${mode}`);
+  GameState.updateMapMode(mode);
 }
 
-window.openDetailModal = (t, d) => {
-    els.mTitle.innerText = d.name;
-    if(t==='planet') { els.mBody.innerHTML=`<div class="modal-content-grid"><div class="planet-visual-large ${getVisualClass(d.type)}"></div><div class="modal-data"><div class="data-tag">TYPE: ${d.type}</div><div class="data-tag">ECON: ${d.economy}</div><p class="lore-text">${d.desc}</p></div></div>`; els.mFooter.innerHTML=`<button onclick="closeModal(); sendCmd('Travel to ${d.name}')" class="action-btn">TRAVEL</button><button onclick="closeModal(); sendCmd('Land on ${d.name}')" class="action-btn">LAND</button>`; if(d.mineable) els.mFooter.innerHTML += `<button onclick="closeModal(); sendCmd('Mine ${d.name}')" class="action-btn">MINE</button>`; }
-    else { els.mBody.innerHTML=`<div class="modal-data"><p>${d.desc||'Item'}</p></div>`; els.mFooter.innerHTML=`<button onclick="closeModal()" class="action-btn">CLOSE</button>`; }
-    els.modal.classList.remove('hidden');
+function switchRightTab(tabName) {
+  console.log(`📋 ${tabName}`);
+  GameState.setRightTab(tabName);
+
+  const tabShip = document.getElementById('tab-ship');
+  const tabLog = document.getElementById('tab-log');
+
+  if (tabShip) tabShip.classList.toggle('active', tabName === 'ship');
+  if (tabLog) tabLog.classList.toggle('active', tabName === 'log');
 }
-window.closeModal = () => els.modal.classList.add('hidden');
-window.sendCmd = async(txt) => { 
-    if(!txt) txt=els.input.value; 
-    els.input.value=''; 
-    try { 
-        const res = await fetch('http://localhost:3000/command', { 
-            method:'POST', 
-            headers:{'Content-Type':'application/json'}, 
-            body: JSON.stringify({command: txt}) 
-        }); 
-        if (!res.ok) {
-            const errorData = await res.json().catch(() => ({error: res.statusText}));
-            if(currentData && currentData.log) currentData.log.push({type: 'error', text: `Server error: ${errorData.error || res.statusText}`});
-            render(currentData);
-            return;
-        }
-        const data = await res.json();
-        render(data); 
-    } catch(e) { 
-        const msg = `Network error: ${e.message}`;
-        if(currentData && currentData.log) currentData.log.push({type: 'error', text: msg});
-        render(currentData);
-        console.error(msg, e);
-    } 
+
+function restartGame() {
+  if (confirm('HARD RESET: Lose all progress?')) {
+    sendCmd('Restart Game');
+  }
 }
-window.setMapMode = (m) => sendCmd(m==='galaxy'?'Galaxy Map':'Scan Sector');
-window.switchRightTab = (t) => { activeRightTab=t; document.querySelectorAll('.p-tab').forEach(b=>b.classList.remove('active')); document.getElementById('tab-'+t).classList.add('active'); renderRightPanel(); }
-window.restartGame = () => sendCmd("RESTART_GAME");
-els.btn.onclick = () => sendCmd(); els.input.onkeypress = (e) => { if(e.key === 'Enter') sendCmd(); };
-async function init() { 
-    try { 
-        const res = await fetch('game_state.json');
-        const data = await res.json();
-        if (!data.meta || !data.meta.location || data.meta.location === "Unknown") {
-             sendCmd("RESTART_GAME");
-        } else {
-            render(data); 
-        }
-    } catch(e) {
-        sendCmd("RESTART_GAME");
-    } 
+
+function closeModal() {
+  const overlay = document.getElementById('modal-overlay');
+  if (overlay) overlay.classList.add('hidden');
 }
-init();
+
+function closeMarket() {
+  const market = document.getElementById('market-display');
+  const shipyard = document.getElementById('shipyard-display');
+  const lounge = document.getElementById('lounge-display');
+
+  if (market) market.classList.add('hidden');
+  if (shipyard) shipyard.classList.add('hidden');
+  if (lounge) lounge.classList.add('hidden');
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  console.log('🚀 DOM ready');
+  GameState.init();
+});
+
+window.debugState = () => console.log('State:', GameState.data);
